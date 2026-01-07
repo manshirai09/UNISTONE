@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Bell, Search, X, ShieldAlert, Play, Heart, MessageCircle, Share2, 
   TrendingUp, Award, Flame, Bot, MapPin, Info, Send, ZoomIn, ZoomOut, 
@@ -9,46 +9,37 @@ import {
   Users2, Clock, Ticket, Navigation, Phone, Mail as MailIcon, Building2, Github, Linkedin, ExternalLink, Camera,
   Users as CommunityIcon, Laptop, Trophy, ClipboardCheck, Book, CalendarDays, Download, Link2, ScanFace, CheckCircle, AlertCircle,
   FileUp, PlaySquare, HelpCircle, GraduationCap as QuizIcon, FileStack, Database, Activity, HardDrive, Terminal, MoreVertical,
-  Sliders, UserPlus, Filter, Shield, Settings2, Power, Globe, Palette, RefreshCw, Image as ImageIcon, Film, FilePlus, Key, Save
+  Sliders, UserPlus, Filter, Shield, Settings2, Power, Globe, Palette, RefreshCw, Image as ImageIcon, Film, FilePlus, Key, Save,
+  Eye, ThumbsUp, ChevronDown, Check, GraduationCap as GradIcon
 } from 'lucide-react';
-import { User, UserRole, Video as VideoType, CampusBuilding, Course, MapCoords, CampusEvent, Authority, Project } from './types';
+import { User, UserRole, Video as VideoType, CampusBuilding, Course, MapCoords, CampusEvent, Authority, Project, Job, CommunityPost } from './types';
 import { NAV_ITEMS, MOCK_BUILDINGS, MOCK_COURSES, MOCK_VIDEOS, MOCK_EVENTS, MOCK_JOBS, MOCK_POSTS, MOCK_SCHEDULE } from './constants';
 import { askUnistoneAI } from './services/gemini';
 
-// --- Global State Simulation ---
-let globalAttendanceSession: { active: boolean; course: string; instructor: string } | null = null;
-let onAttendanceStarted: ((session: { course: string; instructor: string }) => void) | null = null;
+// --- Global State Persistence ---
+const useSyncedState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [state, setState] = useState<T>(() => {
+    const saved = localStorage.getItem(key);
+    return saved ? JSON.parse(saved) : defaultValue;
+  });
 
-// --- Custom Branding Hook ---
-const useGlobalBranding = () => {
-  const [logo, setLogo] = useState(() => localStorage.getItem('unistone-logo') || 'U');
-  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('unistone-color') || '#2563eb');
-  
   useEffect(() => {
-    const handleBranding = (e: any) => {
-      if (e.detail.logo) {
-        setLogo(e.detail.logo);
-        localStorage.setItem('unistone-logo', e.detail.logo);
-      }
-      if (e.detail.color) {
-        setPrimaryColor(e.detail.color);
-        localStorage.setItem('unistone-color', e.detail.color);
-      }
-    };
-    window.addEventListener('unistone-branding-update', handleBranding);
-    return () => window.removeEventListener('unistone-branding-update', handleBranding);
-  }, []);
+    localStorage.setItem(key, JSON.stringify(state));
+  }, [key, state]);
 
-  return { logo, primaryColor };
+  return [state, setState];
 };
+
+// Fix: Declaring global variables to handle attendance synchronization across different parts of the application
+let globalAttendanceSession: any = null;
+let onAttendanceStarted: ((session: any) => void) | null = null;
 
 // --- Authentication View ---
 
-const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
+const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: string }) => {
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
   const [isAdminPortal, setIsAdminPortal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { logo } = useGlobalBranding();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,13 +74,13 @@ const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
 
-      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white min-h-[600px] animate-in fade-in zoom-in-95 duration-700">
+      <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white min-h-[600px] animate-in fade-in zoom-in-95 duration-700 relative z-10">
         <div className={`md:w-1/2 p-12 text-white flex flex-col justify-between relative transition-all duration-500 ${isAdminPortal ? 'bg-slate-900' : 'academic-gradient'}`}>
           <div>
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl overflow-hidden">
               {logo.length > 5 ? <img src={logo} alt="Logo" className="w-full h-full object-cover" /> : <span className={`font-black italic text-2xl ${isAdminPortal ? 'text-slate-900' : 'text-blue-600'}`}>{logo}</span>}
             </div>
-            <h1 className="text-4xl font-black tracking-tighter mb-4 uppercase text-white">UNISTONE</h1>
+            <h1 className="text-4xl font-black tracking-tighter mb-4 uppercase">UNISTONE</h1>
             <p className="text-blue-100 text-lg font-medium leading-relaxed opacity-90">
               {isAdminPortal 
                 ? 'Central Operating Hub. Accessing Restricted Management Terminal.' 
@@ -156,41 +147,19 @@ const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
 
 // --- Admin CRM View ---
 
-const AdminCRMView = () => {
+const AdminCRMView = ({ 
+  mediaList, setMediaList, 
+  buildings, setBuildings, 
+  courses, setCourses, 
+  facultyList, setFacultyList, 
+  studentList, setStudentList,
+  logo, setLogo
+}: any) => {
   const [crmTab, setCrmTab] = useState<'students' | 'faculty' | 'blocks' | 'courses' | 'media' | 'customize'>('students');
   const [search, setSearch] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [logoInput, setLogoInput] = useState('');
-
-  // States for management
-  const [mediaList, setMediaList] = useState([...MOCK_VIDEOS]);
-  const [buildings, setBuildings] = useState([...MOCK_BUILDINGS]);
-  const [courses, setCourses] = useState([...MOCK_COURSES]);
-  const [facultyList, setFacultyList] = useState([
-    { id: 'f1', name: 'Dr. Alan Turing', role: 'Dean of CS', load: 'CS301', block: 'Engineering Block', status: 'Active', bio: 'AI Visionary', skills: 'Python, Neural Networks' },
-    { id: 'f2', name: 'Prof. Richard Feynman', role: 'Head of Physics', load: 'PH405', block: 'Science Block', status: 'Active', bio: 'Quantum Pioneer', skills: 'Physics, Nano-tech' },
-    { id: 'f3', name: 'Ar. Zaha Hadid', role: 'Architecture Lead', load: 'AR101', block: 'Arts Annex', status: 'Active', bio: 'Structural Innovator', skills: 'Design, Cad' }
-  ]);
-
-  // Expanded Student Mock Data
-  const [studentList, setStudentList] = useState([
-    { name: 'Sarah Connor', id: 'UN-2024-001', dept: 'CS - AI/ML', status: 'Active' },
-    { name: 'Marcus Wright', id: 'UN-2024-042', dept: 'Mechanical Eng.', status: 'Probation' },
-    { name: 'Kyle Reese', id: 'UN-2024-102', dept: 'Pharmacy', status: 'Active' },
-    { name: 'John Doe', id: 'UN-2024-115', dept: 'Computer Science', status: 'Active' },
-    { name: 'Jane Smith', id: 'UN-2024-116', dept: 'Electrical Eng.', status: 'Active' },
-    { name: 'Emily Blunt', id: 'UN-2024-204', dept: 'Pharmacy', status: 'Active' },
-    { name: 'Michael Scott', id: 'UN-2024-301', dept: 'Business Mgmt', status: 'Active' },
-    { name: 'Pam Beesly', id: 'UN-2024-302', dept: 'Arts & Design', status: 'Active' },
-    { name: 'Jim Halpert', id: 'UN-2024-303', dept: 'Marketing', status: 'Probation' },
-    { name: 'Dwight Schrute', id: 'UN-2024-304', dept: 'Agriculture', status: 'Active' },
-    { name: 'Angela Martin', id: 'UN-2024-305', dept: 'Accounting', status: 'Active' },
-    { name: 'Bruce Wayne', id: 'UN-2024-007', dept: 'Criminal Justice', status: 'Active' },
-    { name: 'Peter Parker', id: 'UN-2024-008', dept: 'Journalism', status: 'Active' },
-    { name: 'Tony Stark', id: 'UN-2024-009', dept: 'Applied Physics', status: 'Active' },
-    { name: 'Natasha Romanoff', id: 'UN-2024-010', dept: 'Psychology', status: 'Active' }
-  ]);
+  const [logoInput, setLogoInput] = useState(logo);
 
   // Edit states
   const [editingMedia, setEditingMedia] = useState<any>(null);
@@ -199,7 +168,7 @@ const AdminCRMView = () => {
   const [isAddingBlock, setIsAddingBlock] = useState(false);
 
   const handleUpdateLogo = () => {
-    window.dispatchEvent(new CustomEvent('unistone-branding-update', { detail: { logo: logoInput } }));
+    setLogo(logoInput);
     setUploadSuccess(true);
     setTimeout(() => setUploadSuccess(false), 2000);
   };
@@ -208,7 +177,7 @@ const AdminCRMView = () => {
     e.preventDefault();
     setUploading(true);
     setTimeout(() => {
-      setMediaList(prev => prev.map(m => m.id === editingMedia.id ? editingMedia : m));
+      setMediaList((prev: any) => prev.map((m: any) => m.id === editingMedia.id ? editingMedia : m));
       setEditingMedia(null);
       setUploading(false);
       setUploadSuccess(true);
@@ -218,13 +187,13 @@ const AdminCRMView = () => {
 
   const saveCourse = (e: React.FormEvent) => {
     e.preventDefault();
-    setCourses(prev => prev.map(c => c.id === editingCourse.id ? editingCourse : c));
+    setCourses((prev: any) => prev.map((c: any) => c.id === editingCourse.id ? editingCourse : c));
     setEditingCourse(null);
   };
 
   const saveFaculty = (e: React.FormEvent) => {
     e.preventDefault();
-    setFacultyList(prev => prev.map(f => f.id === editingFaculty.id ? editingFaculty : f));
+    setFacultyList((prev: any) => prev.map((f: any) => f.id === editingFaculty.id ? editingFaculty : f));
     setEditingFaculty(null);
   };
 
@@ -271,7 +240,7 @@ const AdminCRMView = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 font-bold text-sm text-slate-600">
-                  {studentList.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase())).map((s, i) => (
+                  {studentList.filter((s: any) => s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase())).map((s: any, i: number) => (
                     <tr key={i} className="hover:bg-slate-50/30 transition-colors">
                       <td className="px-8 py-5 flex items-center gap-4">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">{s.name[0]}</div>
@@ -370,7 +339,7 @@ const AdminCRMView = () => {
                </div>
              )}
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {buildings.map(b => (
+                {buildings.map((b: any) => (
                   <div key={b.id} className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden group hover:shadow-xl transition-all">
                      <div className="h-32 bg-slate-200 relative"><img src={b.image} alt={b.name} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" /></div>
                      <div className="p-6">
@@ -391,7 +360,7 @@ const AdminCRMView = () => {
              </div>
              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                   {courses.map(c => (
+                   {courses.map((c: any) => (
                      <div key={c.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 flex items-center gap-4 group hover:border-blue-200 transition-all">
                         <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center font-black group-hover:bg-blue-600 group-hover:text-white transition-all">{c.code}</div>
                         <div className="flex-1 overflow-hidden">
@@ -413,7 +382,7 @@ const AdminCRMView = () => {
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Assign Lead Faculty</label>
                            <select value={editingCourse.instructor} onChange={e => setEditingCourse({...editingCourse, instructor: e.target.value})} className="w-full px-5 py-3 bg-slate-50 border rounded-2xl font-bold appearance-none">
-                              {facultyList.map(f => <option key={f.id}>{f.name}</option>)}
+                              {facultyList.map((f: any) => <option key={f.id}>{f.name}</option>)}
                            </select>
                         </div>
                         <div className="flex gap-2 pt-4">
@@ -433,7 +402,7 @@ const AdminCRMView = () => {
                 <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3"><Briefcase className="text-slate-700" /> Faculty Ledger</h3>
              </div>
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {facultyList.map(f => (
+                {facultyList.map((f: any) => (
                   <div key={f.id} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative group hover:shadow-xl transition-all">
                      <button onClick={() => setEditingFaculty(f)} className="absolute top-6 right-6 p-2 bg-slate-50 text-slate-300 rounded-xl hover:text-blue-600 transition-all"><Edit3 size={16} /></button>
                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] mb-4 flex items-center justify-center font-black text-xl">{f.name[0]}</div>
@@ -465,7 +434,7 @@ const AdminCRMView = () => {
                         <div className="space-y-2">
                            <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Location Assignment</label>
                            <select value={editingFaculty.block} onChange={e => setEditingFaculty({...editingFaculty, block: e.target.value})} className="w-full px-5 py-3 bg-slate-50 border rounded-2xl font-bold appearance-none">
-                              {buildings.map(b => <option key={b.id}>{b.name}</option>)}
+                              {buildings.map((b: any) => <option key={b.id}>{b.name}</option>)}
                            </select>
                         </div>
                         <div className="flex gap-2 pt-6">
@@ -505,9 +474,9 @@ const AdminCRMView = () => {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-xl shadow-blue-500/30"><Database size={32} /></div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Global <span className="text-blue-600">CRM</span></h2>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none uppercase">Global <span className="text-blue-600">CRM Hub</span></h2>
           </div>
-          <p className="text-slate-500 font-medium italic">Administrative console for university infrastructure and identity.</p>
+          <p className="text-slate-500 font-medium italic">Synchronized administrative console for campus infrastructure and professional profiles.</p>
         </div>
         <div className="flex gap-2 bg-white p-2 rounded-[1.5rem] border border-slate-100 shadow-sm overflow-x-auto no-scrollbar scroll-smooth">
            {[
@@ -531,7 +500,7 @@ const AdminCRMView = () => {
 
 // --- Faculty Module ---
 
-const FacultyDashboard = ({ user }: { user: User }) => {
+const FacultyDashboard = ({ user, setFacultyList }: { user: User; setFacultyList: any }) => {
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'profile' | 'lectures'>('overview');
   const [editingProfile, setEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -543,7 +512,8 @@ const FacultyDashboard = ({ user }: { user: User }) => {
 
   const handleProfileSave = () => {
     setEditingProfile(false);
-    alert('Your professional profile is now locally synchronized!');
+    setFacultyList((prev: any) => prev.map((f: any) => f.name === user.name ? { ...f, ...profileData } : f));
+    alert('Professional profile metadata has been synchronized globally!');
   };
 
   const renderContent = () => {
@@ -618,7 +588,7 @@ const FacultyDashboard = ({ user }: { user: User }) => {
               <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8">
                  <h4 className="text-xl font-black mb-6">Recent Academic Streams</h4>
                  <div className="space-y-4">
-                    {MOCK_VIDEOS.slice(0, 3).map(v => (
+                    {MOCK_VIDEOS.slice(0, 3).map((v: any) => (
                       <div key={v.id} className="flex items-center gap-4 p-5 bg-slate-50 rounded-[2.2rem] border border-slate-100/50 group hover:bg-white hover:border-blue-100 transition-all">
                         <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-sm"><img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" /></div>
                         <div className="flex-1 overflow-hidden">
@@ -651,8 +621,8 @@ const FacultyDashboard = ({ user }: { user: User }) => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none mb-1">Instructor <span className="text-blue-600">Hub</span></h2>
-          <p className="text-slate-500 font-medium italic">Welcome to the classroom of tomorrow, Professor.</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none mb-1 uppercase">Instructor <span className="text-blue-600">Console</span></h2>
+          <p className="text-slate-500 font-medium italic">Managing academic streams and student professional growth.</p>
         </div>
         <div className="flex gap-2 bg-white p-2 rounded-[1.5rem] border border-slate-100 shadow-sm overflow-x-auto no-scrollbar scroll-smooth">
            {[
@@ -671,7 +641,198 @@ const FacultyDashboard = ({ user }: { user: User }) => {
   );
 };
 
-// --- Smart Attendance Component ---
+// --- Student Modules ---
+
+const StudentDashboard = ({ user, courses, mediaList, events }: any) => {
+  const shorts = useMemo(() => mediaList.filter((m: any) => m.type === 'short'), [mediaList]);
+  const longLectures = useMemo(() => mediaList.filter((m: any) => m.type === 'long'), [mediaList]);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+      <header className="flex justify-between items-end">
+        <div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">Campus <span className="text-blue-600">Feed</span></h2>
+          <p className="text-slate-500 font-medium italic">Welcome back, {user.name}. Your personalized academic summary.</p>
+        </div>
+        <div className="flex gap-4">
+          <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm flex items-center gap-3">
+             <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shadow-inner"><Flame size={24} /></div>
+             <div><p className="text-xl font-black leading-none">{user.streak}</p><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Day Streak</p></div>
+          </div>
+          <div className="p-4 bg-white rounded-3xl border border-slate-100 shadow-sm flex items-center gap-3">
+             <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shadow-inner"><Award size={24} /></div>
+             <div><p className="text-xl font-black leading-none">{user.xp}</p><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Total XP</p></div>
+          </div>
+        </div>
+      </header>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+           <section className="space-y-4">
+              <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                 <BookOpen className="text-blue-600" size={20} /> Registered Courses
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 {courses.slice(0, 2).map((c: any) => (
+                   <div key={c.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 hover:border-blue-200 transition-all shadow-sm group">
+                      <div className="flex justify-between items-start mb-4">
+                         <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-lg group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">{c.code}</div>
+                         <button className="p-2 text-slate-300 hover:text-blue-600 transition-all"><MoreVertical size={18} /></button>
+                      </div>
+                      <h4 className="text-xl font-black text-slate-900 leading-tight mb-2 truncate">{c.name}</h4>
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6">{c.instructor}</p>
+                      <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden mb-6"><div className="bg-blue-600 h-full w-[65%]" /></div>
+                      <div className="flex justify-between items-center pt-4 border-t border-slate-50">
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{c.notesCount} Assets Found</span>
+                         <button className="px-5 py-2.5 bg-slate-900 text-white text-[10px] font-black uppercase rounded-xl hover:bg-black transition-all">Resume Hub</button>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </section>
+
+           <section className="space-y-4">
+              <div className="flex justify-between items-end">
+                <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+                  <PlaySquare className="text-red-500" size={20} /> Latest Shorts
+                </h3>
+                <button className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline">View All Reels</button>
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                 {shorts.map((v: any) => (
+                   <div key={v.id} className="w-40 h-72 bg-slate-200 rounded-[2rem] overflow-hidden shrink-0 relative group shadow-lg">
+                      <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-4">
+                         <p className="text-white text-xs font-black leading-tight line-clamp-2">{v.title}</p>
+                         <div className="flex items-center gap-2 mt-2">
+                            <ThumbsUp size={10} className="text-white/60" />
+                            <span className="text-[9px] text-white/60 font-bold">{v.likes}</span>
+                         </div>
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all bg-black/20 backdrop-blur-[2px]">
+                         <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white"><Play size={24} fill="currentColor" /></div>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </section>
+        </div>
+
+        <div className="space-y-8">
+           <section className="bg-slate-900 p-8 rounded-[3rem] text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/20 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+              <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-2">
+                 <Calendar className="text-blue-400" size={20} /> Up Next
+              </h3>
+              <div className="space-y-6">
+                 {events.slice(0, 3).map((e: any) => (
+                   <div key={e.id} className="flex gap-4 group cursor-pointer">
+                      <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:border-blue-600 transition-all">
+                         <p className="text-[10px] font-black leading-none">{e.date.split(' ')[0]}</p>
+                         <p className="text-lg font-black leading-none mt-1">{e.date.split(' ')[1].replace(',', '')}</p>
+                      </div>
+                      <div className="overflow-hidden">
+                         <p className="text-sm font-black truncate">{e.title}</p>
+                         <p className="text-[10px] font-medium text-slate-400 truncate mt-0.5">{e.location}</p>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+              <button className="w-full mt-8 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">View Full Calendar</button>
+           </section>
+
+           <section className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-6">
+              <h3 className="text-xl font-black text-slate-900 uppercase flex items-center gap-2">
+                 <Trophy className="text-yellow-500" size={20} /> Hall of Fame
+              </h3>
+              <div className="space-y-4">
+                 {[
+                   { name: 'Sarah Connor', xp: '12.4k', rank: 1, color: 'text-yellow-500' },
+                   { name: 'Bruce Wayne', xp: '11.8k', rank: 2, color: 'text-slate-400' },
+                   { name: 'Tony Stark', xp: '10.2k', rank: 3, color: 'text-orange-500' }
+                 ].map(user => (
+                   <div key={user.name} className="flex items-center gap-4">
+                      <div className={`w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center font-black text-sm ${user.color}`}>#{user.rank}</div>
+                      <div className="flex-1 overflow-hidden">
+                         <p className="text-xs font-black text-slate-900 truncate">{user.name}</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase">{user.xp} XP Synchronized</p>
+                      </div>
+                   </div>
+                 ))}
+              </div>
+           </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MapView = ({ buildings }: any) => {
+  const [selected, setSelected] = useState<any>(null);
+
+  return (
+    <div className="h-[calc(100vh-120px)] bg-white rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden animate-in fade-in duration-700">
+      <div className="absolute inset-0 bg-slate-50 overflow-hidden">
+         <div className="w-[3000px] h-[3000px] relative transition-transform duration-1000">
+            {buildings.map((b: any) => (
+              <div 
+                key={b.id} 
+                className={`absolute cursor-pointer transition-all duration-500 hover:scale-125 z-10 ${selected?.id === b.id ? 'scale-150 z-20' : ''}`} 
+                style={{ top: b.mapCoords.top, left: b.mapCoords.left }}
+                onClick={() => setSelected(b)}
+              >
+                <div className={`w-8 h-8 ${b.color} rounded-full border-4 border-white shadow-xl flex items-center justify-center text-white`}>
+                   <MapPin size={16} fill="currentColor" />
+                </div>
+                <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-white px-4 py-2 rounded-2xl shadow-2xl border border-slate-100 whitespace-nowrap transition-all duration-300 ${selected?.id === b.id ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+                   <p className="text-xs font-black text-slate-900">{b.name}</p>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{b.departments.length} Departments</p>
+                </div>
+              </div>
+            ))}
+         </div>
+      </div>
+      
+      {/* Search & Overlay */}
+      <div className="absolute top-8 left-8 w-80 space-y-4">
+         <div className="bg-white/80 backdrop-blur-xl p-4 rounded-[2rem] border border-white shadow-2xl flex items-center gap-3">
+            <Search className="text-slate-400" size={18} />
+            <input placeholder="Locate block or facility..." className="bg-transparent outline-none text-sm font-medium flex-1" />
+         </div>
+      </div>
+
+      {selected && (
+        <div className="absolute bottom-8 right-8 w-96 bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden animate-in slide-in-from-right-10 duration-500">
+           <div className="h-40 relative">
+              <img src={selected.image} alt={selected.name} className="w-full h-full object-cover" />
+              <button onClick={() => setSelected(null)} className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-md text-white rounded-xl hover:bg-white/30 transition-all"><X size={18} /></button>
+              <div className="absolute bottom-4 left-6 bg-white/20 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black text-white uppercase tracking-widest border border-white/20">Authorized Node</div>
+           </div>
+           <div className="p-8 space-y-6">
+              <div>
+                 <h3 className="text-2xl font-black text-slate-900 leading-tight uppercase">{selected.name}</h3>
+                 <p className="text-slate-500 font-medium text-sm mt-2">{selected.description}</p>
+              </div>
+              <div className="space-y-4">
+                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Departments</h4>
+                 <div className="flex flex-wrap gap-2">
+                    {selected.departments.map((d: string) => <span key={d} className="px-3 py-1.5 bg-slate-50 text-slate-600 text-[10px] font-black uppercase rounded-lg border border-slate-100">{d}</span>)}
+                 </div>
+              </div>
+              <button className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:scale-[1.02] transition-all">Route to this Block</button>
+           </div>
+        </div>
+      )}
+
+      {/* Map Controls */}
+      <div className="absolute bottom-8 left-8 flex flex-col gap-2">
+         <button className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all"><Plus size={20} /></button>
+         <button className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all"><X className="rotate-45" size={20} /></button>
+         <button className="w-12 h-12 bg-white rounded-2xl shadow-xl flex items-center justify-center text-slate-600 hover:text-blue-600 transition-all"><Compass size={20} /></button>
+      </div>
+    </div>
+  );
+};
 
 const FacultyAttendance = ({ user }: { user: User }) => {
   const [active, setActive] = useState(false);
@@ -679,6 +840,7 @@ const FacultyAttendance = ({ user }: { user: User }) => {
 
   const startSession = () => {
     setActive(true);
+    // Fix: Correctly assigning the attendance session to the module-level variable
     globalAttendanceSession = { active: true, course: 'Cloud Architectures (CS402)', instructor: user.name };
     if (onAttendanceStarted) onAttendanceStarted(globalAttendanceSession);
   };
@@ -695,32 +857,31 @@ const FacultyAttendance = ({ user }: { user: User }) => {
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-2xl mx-auto text-center py-10">
       <div className="space-y-4 mb-10">
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none">AI Smart <span className="text-blue-600">Roster</span></h2>
-        <p className="text-slate-500 font-medium italic">Real-time presence detection across the campus mesh network.</p>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none uppercase">AI Smart <span className="text-blue-600">Sync</span></h2>
+        <p className="text-slate-500 font-medium italic">Synchronizing academic presence across the digital campus mesh.</p>
       </div>
       <div className="bg-white rounded-[3.5rem] p-12 border border-slate-100 shadow-2xl flex flex-col items-center space-y-8 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-blue-500/5 blur-3xl rounded-full" />
         {!active ? (
           <>
             <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2.5rem] flex items-center justify-center shadow-inner relative z-10"><Camera size={48} /></div>
             <div className="space-y-2 relative z-10">
               <h3 className="text-xl font-black text-slate-900 uppercase">Initialize Broadcaster</h3>
-              <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">This will broadcast your session ID to all student devices in proximity.</p>
+              <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">Broadcasting professional session ID to all student hubs in proximity.</p>
             </div>
-            <button onClick={startSession} className="w-full py-6 bg-blue-600 text-white font-black rounded-[2rem] shadow-xl shadow-blue-500/20 hover:scale-105 transition-all flex items-center justify-center gap-2 relative z-10"><ScanFace size={24} /> Start Global Scan</button>
+            <button onClick={startSession} className="w-full py-6 bg-blue-600 text-white font-black rounded-[2rem] shadow-xl shadow-blue-500/20 hover:scale-105 transition-all flex items-center justify-center gap-2 relative z-10"><ScanFace size={24} /> Start Hub Scan</button>
           </>
         ) : (
           <>
             <div className="w-24 h-24 bg-emerald-50 text-emerald-600 rounded-[2.5rem] flex items-center justify-center shadow-inner animate-pulse relative z-10"><Users size={48} /></div>
             <div className="space-y-2 relative z-10">
-              <h3 className="text-xl font-black text-slate-900 uppercase">Mesh Synchronization Active</h3>
-              <p className="text-blue-600 text-sm font-bold uppercase tracking-widest">CS402 - Cloud Architectures Hub</p>
+              <h3 className="text-xl font-black text-slate-900 uppercase">Synchronization Active</h3>
+              <p className="text-blue-600 text-sm font-bold uppercase tracking-widest">CS402 - Cloud Architectures</p>
             </div>
             <div className="w-full space-y-4 relative z-10">
-               <div className="flex justify-between items-end"><span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Identity Synced</span><span className="text-4xl font-black text-emerald-600">{count}/45</span></div>
+               <div className="flex justify-between items-end"><span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Nodes Verified</span><span className="text-4xl font-black text-emerald-600">{count}/45</span></div>
                <div className="w-full h-5 bg-slate-100 rounded-full overflow-hidden border border-slate-50"><div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${(count/45)*100}%` }} /></div>
             </div>
-            <button onClick={() => setActive(false)} className="w-full py-6 bg-slate-900 text-white font-black rounded-[2rem] hover:bg-black transition-all flex items-center justify-center gap-2 relative z-10"><CheckCircle size={24} /> Secure & Finalize Roster</button>
+            <button onClick={() => setActive(false)} className="w-full py-6 bg-slate-900 text-white font-black rounded-[2rem] hover:bg-black transition-all flex items-center justify-center gap-2 relative z-10"><CheckCircle size={24} /> Secure Roster Data</button>
           </>
         )}
       </div>
@@ -741,10 +902,10 @@ const AttendancePopup = ({ session, onMark }: { session: any, onMark: () => void
           {marked ? <CheckCircle size={40} /> : <AlertCircle size={40} />}
         </div>
         <div className="space-y-1">
-          <h3 className="text-2xl font-black text-slate-900">{marked ? 'Session Synched!' : 'Active Hub Found!'}</h3>
-          <p className="text-slate-500 font-medium text-sm">{marked ? 'Your academic presence is now on the ledger.' : `Authorize your node for Prof. ${session.instructor}'s lecture.`}</p>
+          <h3 className="text-2xl font-black text-slate-900 leading-none">{marked ? 'Node Synched!' : 'Campus Sync Found!'}</h3>
+          <p className="text-slate-500 font-medium text-sm mt-2">{marked ? 'Your presence has been globally synchronized.' : `Synchronize your student identity for Prof. ${session.instructor}'s hub.`}</p>
         </div>
-        {!marked && <button onClick={mark} className="w-full py-5 bg-blue-600 text-white font-black rounded-[1.8rem] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-105 transition-all"><ScanFace size={24} /> Sync My Hub Identity</button>}
+        {!marked && <button onClick={mark} className="w-full py-5 bg-blue-600 text-white font-black rounded-[1.8rem] shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-105 transition-all"><ScanFace size={24} /> Authorize Sync</button>}
       </div>
     </div>
   );
@@ -752,19 +913,17 @@ const AttendancePopup = ({ session, onMark }: { session: any, onMark: () => void
 
 // --- Sidebar Navigation ---
 
-const Sidebar = ({ activeTab, setActiveTab, user, onLogout }: { activeTab: string, setActiveTab: (t: string) => void, user: User, onLogout: () => void }) => {
-  const { logo } = useGlobalBranding();
-  
+const Sidebar = ({ activeTab, setActiveTab, user, onLogout, logo }: { activeTab: string, setActiveTab: (t: string) => void, user: User, onLogout: () => void; logo: string }) => {
   const items = user.role === UserRole.ADMIN 
     ? [
-        { id: 'admin-dashboard', label: 'Command Center', icon: <Shield size={20} /> },
+        { id: 'admin-dashboard', label: 'Command Hub', icon: <Shield size={20} /> },
         { id: 'admin-crm', label: 'Platform CRM', icon: <Database size={20} /> },
-        { id: 'navigation', label: 'Digital Twin Map', icon: <MapIcon size={20} /> },
+        { id: 'navigation', label: 'Digital Map', icon: <MapIcon size={20} /> },
       ]
     : user.role === UserRole.FACULTY
     ? [
         { id: 'faculty-dashboard', label: 'Instructor Hub', icon: <LayoutDashboard size={20} /> },
-        { id: 'lectures', label: 'Media Streams', icon: <Video size={20} /> },
+        { id: 'lectures', label: 'Media Flows', icon: <Video size={20} /> },
         { id: 'attendance', label: 'Smart Roster', icon: <ScanFace size={20} /> },
       ]
     : NAV_ITEMS;
@@ -777,7 +936,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }: { activeTab: strin
         </div>
         <h1 className="text-2xl font-black text-blue-900 tracking-tighter truncate uppercase leading-none">UNISTONE</h1>
       </div>
-      <nav className="flex-1 flex flex-col gap-2">
+      <nav className="flex-1 flex flex-col gap-2 overflow-y-auto no-scrollbar">
         {items.map((item) => (
           <button key={item.id} onClick={() => setActiveTab(item.id)} className={`flex items-center gap-3 px-4 py-4 rounded-2xl font-bold text-sm transition-all group ${activeTab === item.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'text-slate-400 hover:bg-slate-50 hover:text-blue-600'}`}>
              <div className="group-hover:scale-110 transition-transform duration-300">{item.icon}</div>
@@ -793,7 +952,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }: { activeTab: strin
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{user.role}</p>
           </div>
         </div>
-        <button onClick={onLogout} className="w-full py-3 bg-white text-red-500 border border-red-50 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm"><LogOut size={14} /> System Exit</button>
+        <button onClick={onLogout} className="w-full py-3 bg-white text-red-500 border border-red-50 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 shadow-sm"><LogOut size={14} /> Global Exit</button>
       </div>
     </aside>
   );
@@ -806,6 +965,25 @@ export default function App() {
     const saved = localStorage.getItem('unistone-user');
     return saved ? JSON.parse(saved) : null;
   });
+
+  // Centralized Synchronized State
+  const [logo, setLogo] = useSyncedState('unistone-logo', 'U');
+  const [buildings, setBuildings] = useSyncedState('unistone-buildings', MOCK_BUILDINGS);
+  const [courses, setCourses] = useSyncedState('unistone-courses', MOCK_COURSES);
+  const [facultyList, setFacultyList] = useSyncedState('unistone-faculty', [
+    { id: 'f1', name: 'Dr. Alan Turing', role: 'Dean of CS', load: 'CS301', block: 'Engineering Block', status: 'Active', bio: 'AI Visionary', skills: 'Python, Neural Networks' },
+    { id: 'f2', name: 'Prof. Richard Feynman', role: 'Head of Physics', load: 'PH405', block: 'Science Block', status: 'Active', bio: 'Quantum Pioneer', skills: 'Physics, Nano-tech' },
+    { id: 'f3', name: 'Ar. Zaha Hadid', role: 'Architecture Lead', load: 'AR101', block: 'Arts Annex', status: 'Active', bio: 'Structural Innovator', skills: 'Design, Cad' }
+  ]);
+  const [mediaList, setMediaList] = useSyncedState('unistone-media', MOCK_VIDEOS);
+  const [events, setEvents] = useSyncedState('unistone-events', MOCK_EVENTS);
+  const [studentList, setStudentList] = useSyncedState('unistone-students', [
+    { name: 'Sarah Connor', id: 'UN-2024-001', dept: 'CS - AI/ML', status: 'Active' },
+    { name: 'John Doe', id: 'UN-2024-115', dept: 'Computer Science', status: 'Active' },
+    { name: 'Jane Smith', id: 'UN-2024-116', dept: 'Electrical Eng.', status: 'Active' },
+    { name: 'Tony Stark', id: 'UN-2024-009', dept: 'Applied Physics', status: 'Active' }
+  ]);
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [session, setSession] = useState<any>(null);
 
@@ -815,6 +993,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
+    // Fix: Correctly assigning a callback to the module-level variable to handle new attendance sessions
     onAttendanceStarted = (s) => { if (user?.role === UserRole.STUDENT) setSession(s); };
     return () => { onAttendanceStarted = null; };
   }, [user]);
@@ -827,40 +1006,65 @@ export default function App() {
     }
   }, [user]);
 
-  if (!user) return <AuthView onLogin={setUser} />;
+  if (!user) return <AuthView onLogin={setUser} logo={logo} />;
 
   const renderContent = () => {
-    if (activeTab === 'admin-crm' && user.role === UserRole.ADMIN) return <AdminCRMView />;
-    if (activeTab === 'admin-dashboard' && user.role === UserRole.ADMIN) return (
-      <div className="space-y-8 animate-in fade-in duration-500">
-        <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div>
-            <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none mb-3 uppercase">Master <span className="text-blue-600">Console</span></h2>
-            <p className="text-slate-500 font-medium italic">Global system oversight, academic infrastructure, and mesh network health.</p>
-          </div>
-          <button onClick={() => setActiveTab('admin-crm')} className="px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
-             <Database size={24} className="group-hover:rotate-12 transition-transform" /> Platform CRM Terminal
-          </button>
-        </header>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            { label: 'Active User Nodes', val: '12,402', icon: <Users /> },
-            { label: 'Network Integrity', val: '99.99%', icon: <RefreshCw /> },
-            { label: 'Digital Assets', val: '4.2 TB', icon: <HardDrive /> },
-            { label: 'Synchronized Hubs', val: '18', icon: <Activity /> }
-          ].map((s, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group cursor-default">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner">{s.icon}</div>
-              <p className="text-4xl font-black text-slate-900 leading-none">{s.val}</p>
-              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2">{s.label}</p>
+    // Shared Navigation
+    if (activeTab === 'navigation') return <MapView buildings={buildings} />;
+
+    // Admin Specific
+    if (user.role === UserRole.ADMIN) {
+      if (activeTab === 'admin-crm') return (
+        <AdminCRMView 
+          mediaList={mediaList} setMediaList={setMediaList}
+          buildings={buildings} setBuildings={setBuildings}
+          courses={courses} setCourses={setCourses}
+          facultyList={facultyList} setFacultyList={setFacultyList}
+          studentList={studentList} setStudentList={setStudentList}
+          logo={logo} setLogo={setLogo}
+        />
+      );
+      if (activeTab === 'admin-dashboard') return (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+            <div>
+              <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none mb-3 uppercase">Platform <span className="text-blue-600">Console</span></h2>
+              <p className="text-slate-500 font-medium italic">Synchronized university oversight hub.</p>
             </div>
-          ))}
+            <button onClick={() => setActiveTab('admin-crm')} className="px-12 py-5 bg-slate-900 text-white rounded-[2rem] font-black shadow-2xl hover:bg-black transition-all flex items-center gap-3 group">
+               <Database size={24} className="group-hover:rotate-12 transition-transform" /> Central CRM Hub
+            </button>
+          </header>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { label: 'Active User Nodes', val: studentList.length + facultyList.length + 1, icon: <Users /> },
+              { label: 'Map Building Nodes', val: buildings.length, icon: <MapPin /> },
+              { label: 'Media Hub Assets', val: mediaList.length, icon: <Film /> },
+              { label: 'Academic Courses', val: courses.length, icon: <BookOpen /> }
+            ].map((s, i) => (
+              <div key={i} className="bg-white p-8 rounded-[2.8rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group cursor-default">
+                <div className={`w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-inner`}>{s.icon}</div>
+                <p className="text-4xl font-black text-slate-900 leading-none">{s.val}</p>
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2">{s.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    );
-    if (activeTab === 'faculty-dashboard' && user.role === UserRole.FACULTY) return <FacultyDashboard user={user} />;
-    if (activeTab === 'attendance' && user.role === UserRole.FACULTY) return <FacultyAttendance user={user} />;
-    
+      );
+    }
+
+    // Faculty Specific
+    if (user.role === UserRole.FACULTY) {
+      if (activeTab === 'faculty-dashboard') return <FacultyDashboard user={user} setFacultyList={setFacultyList} />;
+      if (activeTab === 'attendance') return <FacultyAttendance user={user} />;
+    }
+
+    // Student Specific
+    if (user.role === UserRole.STUDENT) {
+      if (activeTab === 'dashboard') return <StudentDashboard user={user} courses={courses} mediaList={mediaList} events={events} />;
+    }
+
+    // Placeholder for other tabs (Edustone, Events, Careers, etc.)
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-10 text-center animate-in zoom-in-95 duration-500">
          <div className="w-28 h-28 bg-blue-50 text-blue-600 rounded-[3rem] flex items-center justify-center shadow-inner relative overflow-hidden">
@@ -868,8 +1072,8 @@ export default function App() {
             <Sliders size={56} className="relative z-10" />
          </div>
          <div className="space-y-3">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Module Sync Optimized</h2>
-            <p className="text-slate-400 font-medium max-w-lg mx-auto italic text-lg leading-relaxed">This subsystem is currently under administrative synchronization for the latest UNISTONE digital standards.</p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none">Hub Synchronization</h2>
+            <p className="text-slate-400 font-medium max-w-lg mx-auto italic text-lg leading-relaxed">The <span className="text-blue-600 uppercase font-black">{activeTab}</span> subsystem is currently being optimized with synchronized data from the Central CRM.</p>
          </div>
          <button onClick={() => setActiveTab(user.role === UserRole.ADMIN ? 'admin-dashboard' : user.role === UserRole.FACULTY ? 'faculty-dashboard' : 'dashboard')} className="px-12 py-5 bg-blue-600 text-white rounded-[1.8rem] font-black shadow-2xl shadow-blue-500/20 hover:scale-105 transition-all uppercase tracking-widest text-xs">Return to Main Hub</button>
       </div>
@@ -879,7 +1083,7 @@ export default function App() {
   return (
     <div className="min-h-screen gradient-bg">
       {session && <AttendancePopup session={session} onMark={() => setSession(null)} />}
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={() => setUser(null)} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={() => setUser(null)} logo={logo} />
       <main className="md:ml-64 p-4 md:p-10 h-screen flex flex-col overflow-hidden relative">
         <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 custom-scrollbar no-scrollbar">{renderContent()}</div>
       </main>
@@ -914,7 +1118,7 @@ const AIAssistant = () => {
           <div className="p-6 bg-blue-600 text-white flex items-center justify-between shadow-lg">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center border border-white/20"><Bot size={24} /></div>
-              <div><p className="text-base font-black leading-none uppercase">UNISTONE AI</p><p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Smart Concierge</p></div>
+              <div><p className="text-base font-black leading-none uppercase">UNISTONE AI</p><p className="text-[10px] font-bold opacity-70 uppercase tracking-widest mt-1">Synchronized Hub</p></div>
             </div>
             <button onClick={() => setOpen(false)} className="p-2.5 hover:bg-white/10 rounded-2xl transition-all"><X size={20} /></button>
           </div>
@@ -922,7 +1126,7 @@ const AIAssistant = () => {
             {messages.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-40 space-y-3 py-10">
                  <Bot size={48} />
-                 <p className="text-sm font-bold italic max-w-[200px]">How can your intelligent campus assistant help streamline your day?</p>
+                 <p className="text-sm font-bold italic max-w-[200px]">How can your synchronized campus concierge assist with your academic journey today?</p>
               </div>
             )}
             {messages.map((m, i) => (
@@ -933,7 +1137,7 @@ const AIAssistant = () => {
             {loading && <div className="flex gap-1.5 p-3"><div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce" /><div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.2s]" /><div className="w-2.5 h-2.5 bg-blue-400 rounded-full animate-bounce [animation-delay:0.4s]" /></div>}
           </div>
           <div className="p-5 bg-white border-t border-slate-100 flex gap-3 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Type your query..." className="flex-1 px-6 py-4.5 bg-slate-50 border border-slate-100 rounded-[1.8rem] text-sm outline-none focus:border-blue-500 transition-all font-medium" />
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()} placeholder="Query the system..." className="flex-1 px-6 py-4.5 bg-slate-50 border border-slate-100 rounded-[1.8rem] text-sm outline-none focus:border-blue-500 transition-all font-medium" />
             <button onClick={send} className="p-4.5 bg-blue-600 text-white rounded-[1.5rem] shadow-xl hover:scale-105 transition-all shadow-blue-500/20 active:scale-95"><Send size={20} /></button>
           </div>
         </div>
