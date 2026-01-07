@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Bell, Search, X, ShieldAlert, Play, Heart, MessageCircle, Share2, 
@@ -259,7 +260,6 @@ const ProfileView = ({ user, setUser, studentList, setStudentList }: any) => {
 };
 
 // --- Sub-Module: Map View ---
-// Fixed Redeclaration: Kept the primary MapView definition here.
 const MapView = ({ buildings, facultyList }: any) => {
   const [selected, setSelected] = useState<any>(null);
   const buildingFaculty = useMemo(() => {
@@ -342,42 +342,265 @@ const MapView = ({ buildings, facultyList }: any) => {
   );
 };
 
-// --- Sub-Module: Admin CRM ---
-// Added missing component AdminCRMView
+// --- Sub-Module: Admin CRM Hub ---
 const AdminCRMView = ({ 
-  studentList, facultyList, logo, setLogo 
+  studentList, setStudentList,
+  facultyList, setFacultyList,
+  buildings, setBuildings,
+  courses, setCourses,
+  events, setEvents,
+  jobs, setJobs,
+  mediaList, setMediaList,
+  logo, setLogo 
 }: any) => {
+  const [activeTab, setActiveTab] = useState<'nodes' | 'blocks' | 'academic' | 'comms' | 'system'>('nodes');
+  const [editingItem, setEditingItem] = useState<any>(null);
+
+  const saveItem = (list: any[], setList: Function) => {
+    setList(list.map(i => i.id === editingItem.id ? editingItem : i));
+    setEditingItem(null);
+  };
+
+  const deleteItem = (id: string, list: any[], setList: Function) => {
+    setList(list.filter(i => i.id !== id));
+  };
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case 'nodes':
+        return (
+          <div className="space-y-12 animate-in fade-in">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                      <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3"><Users className="text-blue-600"/> Student Ledger</h3>
+                      <button className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Plus size={18}/></button>
+                   </div>
+                   <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                      {studentList.map((s: any) => (
+                        <div key={s.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group">
+                           <div className="overflow-hidden"><p className="text-sm font-black truncate uppercase tracking-tight">{s.name}</p><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{s.dept}</p></div>
+                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button onClick={() => setEditingItem({...s, _type: 'student'})} className="p-2 text-blue-400 hover:text-blue-600"><Edit3 size={16}/></button>
+                              <button onClick={() => deleteItem(s.id, studentList, setStudentList)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+                <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm">
+                   <div className="flex justify-between items-center mb-8">
+                      <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3"><BriefcaseIcon className="text-emerald-600"/> Faculty Ledger</h3>
+                      <button className="p-3 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-600 hover:text-white transition-all"><Plus size={18}/></button>
+                   </div>
+                   <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                      {facultyList.map((f: any) => (
+                        <div key={f.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group">
+                           <div className="overflow-hidden"><p className="text-sm font-black truncate uppercase tracking-tight">{f.name}</p><p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">{f.role}</p></div>
+                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                              <button onClick={() => setEditingItem({...f, _type: 'faculty'})} className="p-2 text-blue-400 hover:text-blue-600"><Edit3 size={16}/></button>
+                              <button onClick={() => deleteItem(f.id, facultyList, setFacultyList)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
+                           </div>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+             </div>
+          </div>
+        );
+      case 'academic':
+        return (
+          <div className="space-y-12 animate-in fade-in">
+             <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-10">
+                   <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4"><BookOpen className="text-purple-600" size={28}/> Edustone Hubs</h3>
+                   <button className="px-8 py-4 bg-purple-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Deploy New Hub</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   {courses.map((c: any) => (
+                     <div key={c.id} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:bg-white transition-all">
+                        <div><p className="text-sm font-black uppercase tracking-tighter leading-none">{c.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-2">{c.code}</p></div>
+                        <div className="flex gap-2">
+                           <button onClick={() => setEditingItem({...c, _type: 'course'})} className="p-2 text-blue-400 hover:text-blue-600"><Edit3 size={16}/></button>
+                           <button onClick={() => deleteItem(c.id, courses, setCourses)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={16}/></button>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+             <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-10">
+                   <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4"><Film className="text-red-600" size={28}/> Media Repository</h3>
+                   <button className="px-8 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Establish Flow</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                   {mediaList.map((m: any) => (
+                     <div key={m.id} className="bg-slate-50 rounded-[2rem] border border-slate-100 overflow-hidden group relative">
+                        <div className="h-32 bg-slate-200"><img src={m.thumbnailUrl} className="w-full h-full object-cover" /></div>
+                        <div className="p-4 flex justify-between items-center">
+                           <p className="text-[10px] font-black truncate uppercase tracking-tight max-w-[100px]">{m.title}</p>
+                           <button onClick={() => deleteItem(m.id, mediaList, setMediaList)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={14}/></button>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+          </div>
+        );
+      case 'blocks':
+        return (
+          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm animate-in fade-in">
+             <div className="flex justify-between items-center mb-10">
+                <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4"><MapPin className="text-orange-600" size={28}/> Infrastructure Mesh</h3>
+                <button className="px-8 py-4 bg-orange-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Add Node Block</button>
+             </div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {buildings.map((b: any) => (
+                  <div key={b.id} className="p-8 bg-slate-50 rounded-[3rem] border border-slate-100 flex items-center justify-between group hover:bg-white transition-all shadow-sm">
+                     <div className="flex items-center gap-6">
+                        <div className={`w-12 h-12 ${b.color} rounded-2xl shadow-inner`} />
+                        <div><p className="text-base font-black uppercase tracking-tight leading-none">{b.name}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-2">Mesh Node Status: OK</p></div>
+                     </div>
+                     <div className="flex gap-2">
+                        <button onClick={() => setEditingItem({...b, _type: 'building'})} className="p-2 text-blue-400 hover:text-blue-600"><Edit3 size={18}/></button>
+                        <button onClick={() => deleteItem(b.id, buildings, setBuildings)} className="p-2 text-red-300 hover:text-red-500"><Trash2 size={18}/></button>
+                     </div>
+                  </div>
+                ))}
+             </div>
+          </div>
+        );
+      case 'comms':
+        return (
+          <div className="space-y-12 animate-in fade-in">
+             <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-10">
+                   <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4"><Calendar className="text-blue-600" size={28}/> System Events</h3>
+                   <button className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Deploy Sync</button>
+                </div>
+                <div className="space-y-4">
+                   {events.map((e: any) => (
+                     <div key={e.id} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:bg-white transition-all">
+                        <div className="overflow-hidden flex items-center gap-8">
+                           <p className="text-sm font-black uppercase tracking-tighter leading-none w-32">{e.date}</p>
+                           <div><p className="text-sm font-black uppercase tracking-tight leading-none">{e.title}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-1 italic">{e.location}</p></div>
+                        </div>
+                        <div className="flex gap-2">
+                           <button onClick={() => setEditingItem({...e, _type: 'event'})} className="p-3 text-blue-400 hover:text-blue-600 bg-white rounded-xl shadow-sm"><Edit3 size={18}/></button>
+                           <button onClick={() => deleteItem(e.id, events, setEvents)} className="p-3 text-red-300 hover:text-red-500 bg-white rounded-xl shadow-sm"><Trash2 size={18}/></button>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+             <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
+                <div className="flex justify-between items-center mb-10">
+                   <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4"><JobIcon className="text-emerald-600" size={28}/> Career Mesh</h3>
+                   <button className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl">Publish Protocol</button>
+                </div>
+                <div className="space-y-4">
+                   {jobs.map((j: any) => (
+                     <div key={j.id} className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:bg-white transition-all">
+                        <div className="flex items-center gap-8">
+                           <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-xl text-emerald-600 shadow-sm">{j.company[0]}</div>
+                           <div><p className="text-sm font-black uppercase tracking-tight leading-none">{j.title}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{j.company} • {j.salary}</p></div>
+                        </div>
+                        <div className="flex gap-2">
+                           <button onClick={() => setEditingItem({...j, _type: 'job'})} className="p-3 text-blue-400 hover:text-blue-600 bg-white rounded-xl shadow-sm"><Edit3 size={18}/></button>
+                           <button onClick={() => deleteItem(j.id, jobs, setJobs)} className="p-3 text-red-300 hover:text-red-500 bg-white rounded-xl shadow-sm"><Trash2 size={18}/></button>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
+          </div>
+        );
+      case 'system':
+        return (
+          <div className="max-w-xl bg-white p-14 rounded-[4.5rem] border border-slate-100 shadow-sm space-y-10 animate-in zoom-in-95">
+             <h3 className="text-3xl font-black flex items-center gap-5 uppercase tracking-tighter leading-none"><Palette className="text-blue-600" size={32}/> Brand Console</h3>
+             <div className="space-y-5">
+                <label className="text-[12px] font-black text-slate-400 uppercase ml-4 tracking-widest">Master Identity shortname (Logo)</label>
+                <div className="flex gap-6">
+                   <input value={logo} onChange={e => setLogo(e.target.value)} className="flex-1 px-8 py-6 bg-slate-50 border border-slate-100 rounded-3xl font-black outline-none focus:border-blue-500 transition-all uppercase tracking-widest text-slate-700 shadow-inner" placeholder="e.g. U or IMG URL" />
+                   <div className="w-20 h-20 bg-blue-600 rounded-[1.8rem] flex items-center justify-center text-white font-black text-3xl shadow-2xl shadow-blue-500/20">{logo.length > 5 ? 'IMG' : logo}</div>
+                </div>
+                <p className="text-[11px] font-bold text-slate-400 italic px-4">Instant Global Synchronization protocol active.</p>
+             </div>
+          </div>
+        );
+      default: return null;
+    }
+  };
+
   return (
-    <div className="space-y-12 animate-in fade-in duration-500 pb-20">
-      <h2 className="text-6xl font-black uppercase tracking-tighter">Master <span className="text-blue-600">Ledger</span></h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
-           <h3 className="text-2xl font-black uppercase mb-8 flex items-center gap-4"><Settings2 className="text-blue-600" size={32}/> Branding</h3>
-           <div className="space-y-6">
-              <label className="text-[12px] font-black text-slate-400 uppercase tracking-widest ml-4">Node Shortname (Logo)</label>
-              <input value={logo} onChange={e => setLogo(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-3xl font-bold outline-none focus:border-blue-500 transition-all shadow-inner" />
+    <div className="space-y-12 pb-20">
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
+        <div>
+           <h2 className="text-7xl font-black uppercase leading-none tracking-tighter">Master <span className="text-blue-600">Hub</span></h2>
+           <p className="text-slate-400 font-bold italic mt-5 text-xl tracking-widest uppercase">Platform Synchronization Protocol</p>
+        </div>
+        <div className="flex gap-3 bg-white p-3 rounded-[2.5rem] border border-slate-100 shadow-xl overflow-x-auto no-scrollbar scroll-smooth">
+           {([
+             {id: 'nodes', l: 'Identity Ledger', i: <Users2 size={16}/>},
+             {id: 'academic', l: 'Intel Hub', i: <BookOpen size={16}/>},
+             {id: 'blocks', l: 'Infrastructure', i: <MapPin size={16}/>},
+             {id: 'comms', l: 'Linkages', i: <LinkIcon size={16}/>},
+             {id: 'system', l: 'Brand Node', i: <Settings2 size={16}/>}
+           ] as const).map(tab => (
+             <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-8 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-3 ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-2xl shadow-blue-500/30 active:scale-95' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>
+                {tab.i} {tab.l}
+             </button>
+           ))}
+        </div>
+      </header>
+
+      <div className="pt-8">{renderTab()}</div>
+
+      {editingItem && (
+        <div className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-md flex items-center justify-center p-8">
+           <div className="bg-white w-full max-w-xl rounded-[4rem] p-16 space-y-12 animate-in zoom-in-95 shadow-5xl border-[8px] border-blue-50">
+              <div className="flex justify-between items-start">
+                 <h4 className="text-4xl font-black uppercase tracking-tighter text-slate-900 leading-none">Terminal <span className="text-blue-600">Override</span></h4>
+                 <button onClick={() => setEditingItem(null)} className="p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all"><X size={24}/></button>
+              </div>
+              <div className="space-y-8">
+                 <div className="space-y-3">
+                    <label className="text-[12px] font-black text-slate-400 uppercase ml-4 tracking-widest">Master Identity Name/Label</label>
+                    <input value={editingItem.name || editingItem.title} onChange={e => editingItem.name ? setEditingItem({...editingItem, name: e.target.value}) : setEditingItem({...editingItem, title: e.target.value})} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-3xl font-black outline-none focus:border-blue-500 transition-all text-slate-700 shadow-inner" />
+                 </div>
+                 {editingItem._type === 'faculty' && (
+                    <div className="space-y-3">
+                       <label className="text-[12px] font-black text-slate-400 uppercase ml-4 tracking-widest">Node Block Allocation</label>
+                       <input value={editingItem.block} onChange={e => setEditingItem({...editingItem, block: e.target.value})} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-3xl font-bold outline-none focus:border-blue-500 shadow-inner" />
+                    </div>
+                 )}
+                 {editingItem._type === 'event' && (
+                    <div className="space-y-3">
+                       <label className="text-[12px] font-black text-slate-400 uppercase ml-4 tracking-widest">Mesh Timestamp</label>
+                       <input value={editingItem.date} onChange={e => setEditingItem({...editingItem, date: e.target.value})} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-3xl font-bold outline-none focus:border-blue-500 shadow-inner" />
+                    </div>
+                 )}
+              </div>
+              <div className="flex gap-6 pt-10 border-t border-slate-50">
+                 <button onClick={() => {
+                    if(editingItem._type === 'student') saveItem(studentList, setStudentList);
+                    if(editingItem._type === 'faculty') saveItem(facultyList, setFacultyList);
+                    if(editingItem._type === 'course') saveItem(courses, setCourses);
+                    if(editingItem._type === 'building') saveItem(buildings, setBuildings);
+                    if(editingItem._type === 'event') saveItem(events, setEvents);
+                    if(editingItem._type === 'job') saveItem(jobs, setJobs);
+                 }} className="flex-1 py-8 bg-blue-600 text-white rounded-[3rem] font-black uppercase text-[13px] tracking-widest shadow-4xl shadow-blue-500/40 hover:scale-[1.03] transition-all active:scale-95">Commit Global Sync</button>
+                 <button onClick={() => setEditingItem(null)} className="px-14 py-8 bg-slate-50 text-slate-400 rounded-[3rem] font-black uppercase text-[13px] tracking-widest hover:bg-slate-100 transition-all active:scale-95">Abort Protocol</button>
+              </div>
            </div>
         </div>
-        <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm">
-           <h3 className="text-2xl font-black uppercase mb-8 flex items-center gap-4"><Users2 className="text-blue-600" size={32}/> Node Statistics</h3>
-           <div className="grid grid-cols-2 gap-6">
-              <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center">
-                 <p className="text-4xl font-black text-slate-900">{studentList.length}</p>
-                 <p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">Students</p>
-              </div>
-              <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 text-center">
-                 <p className="text-4xl font-black text-slate-900">{facultyList.length}</p>
-                 <p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">Faculty</p>
-              </div>
-           </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
 
 // --- Sub-Module: Faculty Dashboard ---
-// Added missing component FacultyDashboard
 const FacultyDashboard = ({ user }: { user: User }) => {
   return (
     <div className="space-y-12 pb-20 animate-in fade-in duration-500">
@@ -407,7 +630,6 @@ const FacultyDashboard = ({ user }: { user: User }) => {
 };
 
 // --- Sub-Module: Edustone Hub ---
-// Added missing component EdustoneHub
 const EdustoneHub = ({ courses }: { courses: Course[] }) => {
   return (
     <div className="space-y-12 pb-20 animate-in fade-in duration-500">
@@ -436,7 +658,6 @@ const EdustoneHub = ({ courses }: { courses: Course[] }) => {
 };
 
 // --- Sub-Module: Video Hub ---
-// Added missing component VideoHub
 const VideoHub = ({ mediaList }: { mediaList: VideoType[] }) => {
   return (
     <div className="space-y-12 pb-20 animate-in fade-in duration-500">
@@ -469,7 +690,6 @@ const VideoHub = ({ mediaList }: { mediaList: VideoType[] }) => {
 };
 
 // --- Sub-Module: Careers View ---
-// Added missing component CareersView
 const CareersView = ({ jobs }: { jobs: Job[] }) => {
   return (
     <div className="space-y-12 pb-20 animate-in fade-in duration-500">
@@ -584,7 +804,8 @@ export default function App() {
     { id: 'f2', name: 'Prof. Feynman', role: 'Quantum Director', block: 'Science Block', status: 'Active', bio: 'Quantum Master' },
     { id: 'f3', name: 'Dr. Neha Gupta', role: 'HOD Pharmacy', block: 'Pharmacy Block', status: 'Active', bio: 'Pharma Specialist' }
   ]);
-  const [mediaList, setMediaList] = useSyncedState('unistone-media', MOCK_VIDEOS);
+  // Explicitly typing mediaList state to VideoType[] to avoid inference issues with MOCK_VIDEOS
+  const [mediaList, setMediaList] = useSyncedState<VideoType[]>('unistone-media', MOCK_VIDEOS);
   const [events, setEvents] = useSyncedState('unistone-events', MOCK_EVENTS);
   const [jobs, setJobs] = useSyncedState('unistone-jobs', MOCK_JOBS);
   const [studentList, setStudentList] = useSyncedState('unistone-students', [
@@ -622,7 +843,7 @@ export default function App() {
     if (activeTab === 'comms') return <ConnectHub facultyList={facultyList} studentList={studentList} />;
 
     if (user.role === UserRole.ADMIN) {
-      if (activeTab === 'admin-crm') return <AdminCRMView mediaList={mediaList} setMediaList={setMediaList} buildings={buildings} setBuildings={setBuildings} courses={courses} setCourses={setCourses} facultyList={facultyList} setFacultyList={setFacultyList} studentList={studentList} setStudentList={setStudentList} events={events} setEvents={setEvents} jobs={jobs} setJobs={setJobs} logo={logo} setLogo={setLogo} />;
+      if (activeTab === 'admin-crm') return <AdminCRMView studentList={studentList} setStudentList={setStudentList} facultyList={facultyList} setFacultyList={setFacultyList} buildings={buildings} setBuildings={setBuildings} courses={courses} setCourses={setCourses} events={events} setEvents={setEvents} jobs={jobs} setJobs={setJobs} mediaList={mediaList} setMediaList={setMediaList} logo={logo} setLogo={setLogo} />;
       if (activeTab === 'admin-dashboard') return (
         <div className="space-y-12 animate-in fade-in duration-500">
            <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">

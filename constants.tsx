@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   Map as MapIcon, 
   BookOpen, 
-  Video, 
+  Video as VideoIcon, 
   Calendar, 
   MessageSquare, 
   Briefcase, 
@@ -12,13 +12,13 @@ import {
   LayoutDashboard,
   User as UserIcon
 } from 'lucide-react';
-import { CampusBuilding, UserRole, CampusEvent, Course, Job, CommunityPost, ScheduleItem } from './types';
+import { CampusBuilding, UserRole, CampusEvent, Course, Job, CommunityPost, ScheduleItem, Video } from './types';
 
 export const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
   { id: 'navigation', label: 'Campus Map', icon: <MapIcon size={20} /> },
   { id: 'edustone', label: 'Edustone Hub', icon: <BookOpen size={20} /> },
-  { id: 'videohub', label: 'Video Hub', icon: <Video size={20} /> },
+  { id: 'videohub', label: 'Video Hub', icon: <VideoIcon size={20} /> },
   { id: 'events', label: 'Events', icon: <Calendar size={20} /> },
   { id: 'comms', label: 'Connect', icon: <MessageSquare size={20} /> },
   { id: 'careers', label: 'Careers', icon: <Briefcase size={20} /> },
@@ -94,7 +94,8 @@ export const MOCK_COURSES: Course[] = [
   { id: 'c3', name: 'Modern Architecture', code: 'AR101', instructor: 'Ar. Zaha Hadid', notesCount: 10, lecturesCount: 8 },
 ];
 
-export const MOCK_VIDEOS = [
+// Added explicit typing to MOCK_VIDEOS to ensure the 'type' field is restricted to 'short' | 'long'
+export const MOCK_VIDEOS: Video[] = [
   { 
     id: 'v1', 
     title: 'Complexity Analysis in 60s', 
