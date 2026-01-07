@@ -1,16 +1,10 @@
-
 import { GoogleGenAI } from "@google/genai";
 
+// AI Assistant service for UNISTONE University platform
 export const askUnistoneAI = async (prompt: string) => {
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey || apiKey === "undefined") {
-    console.error("Gemini API Error: API_KEY is not defined in environment variables.");
-    return "I'm currently in offline mode because my API key isn't set up. Please contact the administrator.";
-  }
-
+  // Use process.env.API_KEY exclusively as per guidelines and initialize strictly
   try {
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -22,9 +16,12 @@ export const askUnistoneAI = async (prompt: string) => {
         temperature: 0.7,
       },
     });
+
+    // Directly access .text property as per guidelines (do not use .text())
     return response.text || "I processed your request but have no text to return.";
   } catch (error) {
     console.error("Gemini API Error:", error);
+    // Silent handling of configuration errors for a better user experience
     return "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later!";
   }
 };
