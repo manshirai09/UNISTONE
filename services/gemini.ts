@@ -2,9 +2,15 @@
 import { GoogleGenAI } from "@google/genai";
 
 export const askUnistoneAI = async (prompt: string) => {
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey || apiKey === "undefined") {
+    console.error("Gemini API Error: API_KEY is not defined in environment variables.");
+    return "I'm currently in offline mode because my API key isn't set up. Please contact the administrator.";
+  }
+
   try {
-    // Fix: Move GoogleGenAI instance creation inside the function to ensure it always uses the most current process.env.API_KEY.
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: prompt,
@@ -16,8 +22,7 @@ export const askUnistoneAI = async (prompt: string) => {
         temperature: 0.7,
       },
     });
-    // Accessing .text as a property per current SDK guidelines.
-    return response.text;
+    return response.text || "I processed your request but have no text to return.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "I'm sorry, I'm having trouble connecting to my brain right now. Please try again later!";
