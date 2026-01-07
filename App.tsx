@@ -82,7 +82,7 @@ const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
             <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-xl overflow-hidden">
               {logo.length > 5 ? <img src={logo} alt="Logo" className="w-full h-full object-cover" /> : <span className={`font-black italic text-2xl ${isAdminPortal ? 'text-slate-900' : 'text-blue-600'}`}>{logo}</span>}
             </div>
-            <h1 className="text-4xl font-black tracking-tighter mb-4 uppercase">UNISTONE</h1>
+            <h1 className="text-4xl font-black tracking-tighter mb-4 uppercase text-white">UNISTONE</h1>
             <p className="text-blue-100 text-lg font-medium leading-relaxed opacity-90">
               {isAdminPortal 
                 ? 'Central Operating Hub. Accessing Restricted Management Terminal.' 
@@ -166,6 +166,25 @@ const AdminCRMView = () => {
     { id: 'f3', name: 'Ar. Zaha Hadid', role: 'Architecture Lead', load: 'AR101', block: 'Arts Annex', status: 'Active', bio: 'Structural Innovator', skills: 'Design, Cad' }
   ]);
 
+  // Expanded Student Mock Data
+  const [studentList, setStudentList] = useState([
+    { name: 'Sarah Connor', id: 'UN-2024-001', dept: 'CS - AI/ML', status: 'Active' },
+    { name: 'Marcus Wright', id: 'UN-2024-042', dept: 'Mechanical Eng.', status: 'Probation' },
+    { name: 'Kyle Reese', id: 'UN-2024-102', dept: 'Pharmacy', status: 'Active' },
+    { name: 'John Doe', id: 'UN-2024-115', dept: 'Computer Science', status: 'Active' },
+    { name: 'Jane Smith', id: 'UN-2024-116', dept: 'Electrical Eng.', status: 'Active' },
+    { name: 'Emily Blunt', id: 'UN-2024-204', dept: 'Pharmacy', status: 'Active' },
+    { name: 'Michael Scott', id: 'UN-2024-301', dept: 'Business Mgmt', status: 'Active' },
+    { name: 'Pam Beesly', id: 'UN-2024-302', dept: 'Arts & Design', status: 'Active' },
+    { name: 'Jim Halpert', id: 'UN-2024-303', dept: 'Marketing', status: 'Probation' },
+    { name: 'Dwight Schrute', id: 'UN-2024-304', dept: 'Agriculture', status: 'Active' },
+    { name: 'Angela Martin', id: 'UN-2024-305', dept: 'Accounting', status: 'Active' },
+    { name: 'Bruce Wayne', id: 'UN-2024-007', dept: 'Criminal Justice', status: 'Active' },
+    { name: 'Peter Parker', id: 'UN-2024-008', dept: 'Journalism', status: 'Active' },
+    { name: 'Tony Stark', id: 'UN-2024-009', dept: 'Applied Physics', status: 'Active' },
+    { name: 'Natasha Romanoff', id: 'UN-2024-010', dept: 'Psychology', status: 'Active' }
+  ]);
+
   // Edit states
   const [editingMedia, setEditingMedia] = useState<any>(null);
   const [editingCourse, setEditingCourse] = useState<any>(null);
@@ -223,6 +242,50 @@ const AdminCRMView = () => {
 
   const renderTab = () => {
     switch (crmTab) {
+      case 'students':
+        return (
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in duration-300">
+            <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
+              <div className="relative w-96">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student directory..." className="w-full pl-12 pr-4 py-3 bg-white rounded-xl border border-slate-100 text-sm outline-none" />
+              </div>
+              <button className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-500/20"><UserPlus size={16} /> Batch Enroll</button>
+            </div>
+            <div className="overflow-x-auto max-h-[600px] custom-scrollbar">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50/50">
+                    <th className="px-8 py-4">Student Profile</th>
+                    <th className="px-8 py-4">Enrollment ID</th>
+                    <th className="px-8 py-4">Department</th>
+                    <th className="px-8 py-4">Status</th>
+                    <th className="px-8 py-4">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 font-bold text-sm text-slate-600">
+                  {studentList.filter(s => s.name.toLowerCase().includes(search.toLowerCase()) || s.id.toLowerCase().includes(search.toLowerCase())).map((s, i) => (
+                    <tr key={i} className="hover:bg-slate-50/30 transition-colors">
+                      <td className="px-8 py-5 flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black">{s.name[0]}</div>
+                        <span className="text-slate-900">{s.name}</span>
+                      </td>
+                      <td className="px-8 py-5 text-xs font-mono">{s.id}</td>
+                      <td className="px-8 py-5">{s.dept}</td>
+                      <td className="px-8 py-5">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${s.status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>{s.status}</span>
+                      </td>
+                      <td className="px-8 py-5 flex gap-2">
+                        <button className="p-2 text-slate-300 hover:text-blue-600 transition-all"><Edit3 size={16} /></button>
+                        <button className="p-2 text-slate-300 hover:text-red-500 transition-all"><Trash2 size={16} /></button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
       case 'media':
         return (
           <div className="space-y-8 animate-in fade-in duration-300">
