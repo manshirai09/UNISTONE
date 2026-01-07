@@ -21,13 +21,19 @@ let onAttendanceStarted: ((session: { course: string; instructor: string }) => v
 
 // --- Custom Branding Hook ---
 const useGlobalBranding = () => {
-  const [logo, setLogo] = useState('U');
-  const [primaryColor, setPrimaryColor] = useState('#2563eb');
+  const [logo, setLogo] = useState(() => localStorage.getItem('unistone-logo') || 'U');
+  const [primaryColor, setPrimaryColor] = useState(() => localStorage.getItem('unistone-color') || '#2563eb');
   
   useEffect(() => {
     const handleBranding = (e: any) => {
-      if (e.detail.logo) setLogo(e.detail.logo);
-      if (e.detail.color) setPrimaryColor(e.detail.color);
+      if (e.detail.logo) {
+        setLogo(e.detail.logo);
+        localStorage.setItem('unistone-logo', e.detail.logo);
+      }
+      if (e.detail.color) {
+        setPrimaryColor(e.detail.color);
+        localStorage.setItem('unistone-color', e.detail.color);
+      }
     };
     window.addEventListener('unistone-branding-update', handleBranding);
     return () => window.removeEventListener('unistone-branding-update', handleBranding);
@@ -53,7 +59,7 @@ const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
     const finalRole = isAdminPortal ? UserRole.ADMIN : role;
 
     setTimeout(() => {
-      onLogin({
+      const newUser: User = {
         id: Math.random().toString(36).substr(2, 9),
         name: finalRole === UserRole.ADMIN ? 'Head Administrator' : (finalRole === UserRole.FACULTY ? 'Prof. Alan Turing' : 'Sarah Connor'),
         email: email,
@@ -66,7 +72,8 @@ const AuthView = ({ onLogin }: { onLogin: (user: User) => void }) => {
         projects: [],
         githubUrl: 'https://github.com/unistone',
         linkedinUrl: 'https://linkedin.com/in/unistone'
-      });
+      };
+      onLogin(newUser);
       setLoading(false);
     }, 1000);
   };
@@ -795,9 +802,17 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout }: { activeTab: strin
 // --- Main Hub Component ---
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('unistone-user');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    if (user) localStorage.setItem('unistone-user', JSON.stringify(user));
+    else localStorage.removeItem('unistone-user');
+  }, [user]);
 
   useEffect(() => {
     onAttendanceStarted = (s) => { if (user?.role === UserRole.STUDENT) setSession(s); };
