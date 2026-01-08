@@ -83,7 +83,7 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
       <div className="w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white relative z-10 animate-in fade-in zoom-in-95 duration-700">
         <div className={`md:w-1/2 p-12 text-white flex flex-col justify-between transition-all duration-700 ${isAdminPortal ? 'bg-slate-900' : 'academic-gradient'}`}>
           <div>
-            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-xl overflow-hidden border-2 border-slate-100/20">
+            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-xl overflow-hidden border-2 border-slate-100/20">
               {logo.length > 5 ? <img src={logo} alt="Logo" className="w-full h-full object-contain p-2" /> : <span className={`font-black italic text-3xl ${isAdminPortal ? 'text-slate-900' : 'text-[#8B0000]'}`}>{logo}</span>}
             </div>
             <h1 className="text-5xl font-black tracking-tighter mb-4 uppercase">UNISTONE</h1>
@@ -999,7 +999,7 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, logo }: any) => {
 
       <aside className={`fixed top-0 left-0 h-screen w-72 bg-white border-r border-slate-100 z-[900] flex flex-col p-10 transition-transform duration-500 md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center gap-5 mb-16">
-          <div className="w-14 h-14 bg-white rounded-[1.2rem] flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden">
+          <div className="w-20 h-20 bg-white rounded-[1.2rem] flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden">
             {logo.length > 5 ? <img src={logo} className="w-full h-full object-contain p-2" /> : <span className="text-[#8B0000] font-black text-2xl">{logo}</span>}
           </div>
           <span className="text-2xl font-black uppercase tracking-tighter text-slate-900 leading-none">Unistone</span>
@@ -1044,7 +1044,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [logo, setLogo] = useSyncedState('unistone-logo', 'https://sageuniversity.edu.in/assets/images/logo.png');
+  const [logo, setLogo] = useSyncedState('unistone-logo', 'https://colleges18.s3.ap-south-1.amazonaws.com/Sage_univ_indore_b02eee0e17.jpg');
   const [buildings, setBuildings] = useSyncedState('unistone-buildings', MOCK_BUILDINGS);
   const [courses, setCourses] = useSyncedState('unistone-courses', MOCK_COURSES);
   const [facultyList, setFacultyList] = useSyncedState('unistone-faculty', [
