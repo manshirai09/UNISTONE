@@ -36,7 +36,8 @@ export interface User {
   linkedinUrl?: string;
   profileImage?: string;
   coverImage?: string;
-  enrolledCourseIds: string[]; // Added to track course registrations
+  enrolledCourseIds: string[];
+  isSuspended?: boolean;
 }
 
 export interface Lecture {

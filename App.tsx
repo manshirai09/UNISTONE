@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, Search, Play, Heart, Flame, Bot, MapPin, Send, User as UserIcon, Lock, 
@@ -6,7 +7,7 @@ import {
   Clock, ScanFace, CheckCircle, AlertCircle, PlaySquare, Image as ImageIcon, 
   Film, Save, Eye, Github, Linkedin, Network, Building, Zap, ArrowRight,
   TrendingUp, Globe, Smartphone, Laptop, Filter, Check, Camera, Upload,
-  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle
+  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette
 } from 'lucide-react';
 import { User, UserRole, Video as VideoType, CampusBuilding, Course, CampusEvent, Job, NewsArticle, Applicant, Lecture, Module } from './types';
 import { NAV_ITEMS, MOCK_BUILDINGS, MOCK_COURSES, MOCK_VIDEOS, MOCK_EVENTS, MOCK_NEWS, MOCK_JOBS } from './constants';
@@ -22,6 +23,33 @@ const useSyncedState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<Re
   return [state, setState];
 };
 
+// --- Dynamic Theme Injector ---
+const ThemeProvider = ({ primaryColor }: { primaryColor: string }) => {
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.id = 'dynamic-theme';
+    style.innerHTML = `
+      :root {
+        --brand-primary: ${primaryColor};
+        --brand-soft: ${primaryColor}1A;
+        --brand-mid: ${primaryColor}80;
+      }
+      .academic-gradient {
+        background: linear-gradient(135deg, var(--brand-primary) 0%, ${primaryColor}CC 100%) !important;
+      }
+      .text-brand { color: var(--brand-primary) !important; }
+      .bg-brand { background-color: var(--brand-primary) !important; }
+      .border-brand { border-color: var(--brand-primary) !important; }
+      .shadow-brand { box-shadow: 0 20px 40px -15px ${primaryColor}4D !important; }
+      .active-nav { background-color: var(--brand-primary) !important; }
+    `;
+    const existing = document.getElementById('dynamic-theme');
+    if (existing) existing.remove();
+    document.head.appendChild(style);
+  }, [primaryColor]);
+  return null;
+};
+
 // --- Auth View ---
 const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: string }) => {
   const [loading, setLoading] = useState(false);
@@ -32,15 +60,22 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
     const email = (e.target as any).email.value;
     
     setTimeout(() => {
-      const isFaculty = email.toLowerCase().includes('faculty');
+      const emailLower = email.toLowerCase();
+      const isFaculty = emailLower.includes('faculty');
+      const isAdmin = emailLower.includes('admin');
+      
       onLogin({
-        id: isFaculty ? 'FAC-301-A' : 'STU-2024-X', 
-        name: isFaculty ? 'Dr. Alan Turing' : 'Sarah Connor', 
+        id: isAdmin ? 'ADMIN-CORE' : (isFaculty ? 'FAC-301-A' : 'STU-2024-X'), 
+        name: isAdmin ? 'System Admin' : (isFaculty ? 'Dr. Alan Turing' : 'Sarah Connor'), 
         email: email, 
-        role: isFaculty ? UserRole.FACULTY : UserRole.STUDENT,
-        department: 'CS', attendance: 88, xp: 12400, streak: 12, bio: 'Synchronizing intelligence nodes.',
-        skills: ['React', 'Python', 'AI'], 
-        profileImage: isFaculty ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' : 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop',
+        role: isAdmin ? UserRole.ADMIN : (isFaculty ? UserRole.FACULTY : UserRole.STUDENT),
+        department: isAdmin ? 'Administration' : 'CS', 
+        attendance: isAdmin ? 100 : 88, 
+        xp: isAdmin ? 99999 : 12400, 
+        streak: 12, 
+        bio: isAdmin ? 'Core System Overseer' : 'Synchronizing intelligence nodes.',
+        skills: isAdmin ? ['Security', 'Logistics'] : ['React', 'Python', 'AI'], 
+        profileImage: isAdmin ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop' : (isFaculty ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' : 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop'),
         enrolledCourseIds: isFaculty ? ['c1', 'c2'] : []
       });
       setLoading(false);
@@ -65,13 +100,13 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="relative">
               <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input name="email" type="email" required placeholder="University ID (Type 'faculty' for Faculty role)" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-[#8B0000]" />
+              <input name="email" type="email" required placeholder="Email (use 'admin' or 'faculty' for roles)" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-brand" />
             </div>
             <div className="relative">
               <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input name="password" type="password" required placeholder="Credential" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-[#8B0000]" />
+              <input name="password" type="password" required placeholder="Credential" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-brand" />
             </div>
-            <button disabled={loading} className="w-full py-5 bg-[#8B0000] text-white font-black rounded-2xl shadow-xl uppercase text-[11px] tracking-widest hover:bg-[#a50000] transition-all">
+            <button disabled={loading} className="w-full py-5 bg-brand text-white font-black rounded-2xl shadow-xl uppercase text-[11px] tracking-widest hover:opacity-90 transition-all">
               {loading ? 'Synchronizing...' : 'Establish Connection'}
             </button>
           </form>
@@ -81,85 +116,270 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
   );
 };
 
-// --- News Reader ---
-const NewsReader = ({ news, onClose }: { news: NewsArticle, onClose: () => void }) => {
-  return (
-    <div className="fixed inset-0 z-[3000] bg-white animate-in slide-in-from-bottom duration-500 overflow-y-auto custom-scrollbar">
-      <div className="max-w-4xl mx-auto px-6 py-20 relative">
-        <button onClick={onClose} className="fixed top-10 right-10 p-4 bg-slate-100 rounded-full hover:bg-slate-200 transition-all z-50"><X size={24}/></button>
-        <div className="space-y-10">
-          <div className="space-y-6">
-            <span className="px-5 py-2 bg-[#F0E68C] text-[#8B0000] text-[10px] font-black uppercase rounded-xl">{news.source} • {news.readTime}</span>
-            <h1 className="text-6xl font-black text-slate-900 tracking-tighter uppercase leading-none">{news.title}</h1>
-          </div>
-          <div className="h-[500px] rounded-[4rem] overflow-hidden shadow-2xl"><img src={news.image} className="w-full h-full object-cover" alt="" /></div>
-          <div className="prose prose-xl text-slate-600 font-medium leading-relaxed space-y-8">
-            <p className="text-2xl text-slate-900 font-bold italic">Latest synchronization report from {news.source}:</p>
-            <p>{news.content || "The intersection of digital infrastructure and academic pedagogy is reaching a critical inflection point. This breakthrough represents a significant shift in how we process real-time campus data and personal learning trajectories."}</p>
-          </div>
-          <button className="flex items-center gap-4 text-[#8B0000] font-black uppercase tracking-widest hover:gap-6 transition-all">Read Full Protocol on {news.source} <ArrowRight/></button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Upload Content Modal ---
-const UploadModal = ({ onClose, onUpload }: { onClose: () => void, onUpload: (content: any) => void }) => {
-  const [type, setType] = useState<Lecture['type']>('lecture');
-  const [title, setTitle] = useState('');
-  const [duration, setDuration] = useState('');
-  const [file, setFile] = useState<string | null>(null);
-  const [fileName, setFileName] = useState('');
-
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      setFileName(f.name);
-      const reader = new FileReader();
-      reader.onloadend = () => setFile(reader.result as string);
-      reader.readAsDataURL(f);
-    }
+// --- Admin Hub ---
+const AdminHub = ({ 
+  buildings, setBuildings, 
+  users, setUsers, 
+  logo, setLogo, 
+  primaryColor, setPrimaryColor 
+}: any) => {
+  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'analytics' | 'os'>('campus');
+  
+  const handleAddBuilding = () => {
+    const name = prompt("Enter Building Name:");
+    if (!name) return;
+    const newB: CampusBuilding = {
+      id: Math.random().toString(36).substr(2, 4).toUpperCase(),
+      name,
+      description: "New active node establishment.",
+      color: "bg-indigo-500",
+      image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=600&h=400&fit=crop",
+      floors: 3,
+      departments: ["General"],
+      facilities: ["WIFI"],
+      mapCoords: { top: "50%", left: "50%" }
+    };
+    setBuildings([...buildings, newB]);
   };
 
-  const submit = () => {
-    if (!title) return;
-    onUpload({
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      duration: type === 'lecture' ? (duration || '45:00') : (duration || 'Due Tomorrow'),
-      status: 'pending',
-      type,
-      url: file || undefined,
-      fileType: fileName.split('.').pop() || 'file'
-    });
+  const handleToggleSuspend = (userId: string) => {
+    setUsers(users.map((u: User) => u.id === userId ? { ...u, isSuspended: !u.isSuspended } : u));
+  };
+
+  const handleAddUser = () => {
+    const name = prompt("Name:");
+    const roleStr = prompt("Role (student/faculty):");
+    if (!name || !roleStr) return;
+    const role = roleStr.toLowerCase() === 'faculty' ? UserRole.FACULTY : UserRole.STUDENT;
+    const newUser: User = {
+      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      name,
+      email: `${name.toLowerCase().replace(' ', '.')}@unistone.edu`,
+      role,
+      department: "CS",
+      attendance: 100,
+      xp: 0,
+      streak: 0,
+      enrolledCourseIds: [],
+      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop"
+    };
+    setUsers([...users, newUser]);
   };
 
   return (
-    <div className="fixed inset-0 z-[4000] bg-black/60 backdrop-blur-md flex items-center justify-center p-8 animate-in zoom-in-95">
-      <div className="bg-white w-full max-w-xl rounded-[4rem] overflow-hidden shadow-5xl border-[10px] border-[#8B0000]/10 p-12 space-y-8">
-        <div className="flex justify-between items-center">
-          <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Establish <span className="text-[#8B0000]">Content Node</span></h3>
-          <button onClick={onClose} className="p-3 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors"><X/></button>
+    <div className="space-y-12 animate-in fade-in pb-20">
+      <header className="flex justify-between items-end">
+        <div>
+          <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Command <span className="text-brand">Center</span></h2>
+          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed">Full system governance enabled.</p>
         </div>
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3">
-            {(['lecture', 'assignment', 'reading', 'quiz'] as const).map(t => (
-              <button key={t} onClick={() => setType(t)} className={`px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all ${type === t ? 'bg-[#8B0000] text-white shadow-brand' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>{t}</button>
-            ))}
+        <div className="flex bg-white rounded-3xl p-2 border border-slate-100 shadow-sm">
+          {['campus', 'registry', 'analytics', 'os'].map(tab => (
+            <button 
+              key={tab} 
+              onClick={() => setActiveAdminTab(tab as any)}
+              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === tab ? 'bg-brand text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {activeAdminTab === 'campus' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {buildings.map((b: CampusBuilding) => (
+            <div key={b.id} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-6 group">
+              <div className="h-48 rounded-[2.5rem] overflow-hidden relative">
+                <img src={b.image} className="w-full h-full object-cover" />
+                <button 
+                  onClick={() => {
+                    const url = prompt("New Image URL:", b.image);
+                    if (url) setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, image: url } : x));
+                  }}
+                  className="absolute bottom-4 right-4 p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Camera size={18} />
+                </button>
+              </div>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{b.name}</h4>
+                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Floors: {b.floors} • ID: {b.id}</p>
+                </div>
+                <button 
+                  onClick={() => setBuildings(buildings.filter((x: any) => x.id !== b.id))}
+                  className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-colors"
+                >
+                  <Trash2 size={20} />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                <input 
+                  type="text" 
+                  value={b.mapCoords.top} 
+                  onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, mapCoords: { ...x.mapCoords, top: e.target.value } } : x))}
+                  className="px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold border border-transparent focus:border-brand" 
+                  placeholder="Top %"
+                />
+                <input 
+                  type="text" 
+                  value={b.mapCoords.left} 
+                  onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, mapCoords: { ...x.mapCoords, left: e.target.value } } : x))}
+                  className="px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold border border-transparent focus:border-brand" 
+                  placeholder="Left %"
+                />
+              </div>
+            </div>
+          ))}
+          <button 
+            onClick={handleAddBuilding}
+            className="border-4 border-dashed border-slate-100 rounded-[4rem] flex flex-col items-center justify-center p-12 text-slate-300 hover:text-brand hover:border-brand/40 transition-all gap-4"
+          >
+            <div className="p-6 bg-slate-50 rounded-full"><Plus size={40} /></div>
+            <p className="text-[12px] font-black uppercase tracking-[0.2em]">Deploy Node</p>
+          </button>
+        </div>
+      )}
+
+      {activeAdminTab === 'registry' && (
+        <div className="bg-white rounded-[4rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-10 border-b border-slate-50 flex justify-between items-center">
+            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">User Repository</h3>
+            <button onClick={handleAddUser} className="px-8 py-4 bg-brand text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 shadow-brand">
+              <PlusCircle size={18} /> Establish New Link
+            </button>
           </div>
-          <div className="space-y-4">
-            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Node Title (e.g. Node Architecture 101)" className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl font-bold outline-none focus:border-[#8B0000] transition-colors" />
-            <input value={duration} onChange={e => setDuration(e.target.value)} placeholder={type === 'lecture' ? "Duration (e.g. 52:00)" : "Deadline (e.g. Oct 25)"} className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl font-bold outline-none focus:border-[#8B0000] transition-colors" />
-            <div className="p-8 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-center space-y-4 cursor-pointer hover:bg-slate-50 transition-all group" onClick={() => (document.getElementById('file-node-input') as any).click()}>
-              <FileUp className={`mx-auto transition-colors ${file ? 'text-emerald-500' : 'text-slate-300 group-hover:text-[#8B0000]'}`} size={40} />
-              <p className="text-[10px] font-black uppercase text-slate-400">{file ? `Asset Cached: ${fileName}` : 'Sync Master File Node'}</p>
-              <input id="file-node-input" type="file" className="hidden" onChange={handleFile} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
+                  <th className="px-10 py-6">Identity</th>
+                  <th className="px-10 py-6">Role</th>
+                  <th className="px-10 py-6">Department</th>
+                  <th className="px-10 py-6">Pulse (Attendance/XP)</th>
+                  <th className="px-10 py-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {users.map((u: User) => (
+                  <tr key={u.id} className={`group hover:bg-slate-50/50 transition-colors ${u.isSuspended ? 'opacity-50 grayscale' : ''}`}>
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-4">
+                        <img src={u.profileImage} className="w-12 h-12 rounded-2xl object-cover shadow-sm" />
+                        <div>
+                          <p className="text-sm font-black text-slate-900 uppercase">{u.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6">
+                      <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${u.role === UserRole.FACULTY ? 'bg-indigo-50 text-indigo-600' : 'bg-brand/10 text-brand'}`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-10 py-6">
+                      <p className="text-xs font-bold text-slate-500 uppercase">{u.department}</p>
+                    </td>
+                    <td className="px-10 py-6">
+                      <div className="flex items-center gap-6">
+                        <div><p className="text-sm font-black text-slate-900">{u.attendance}%</p><p className="text-[9px] font-black uppercase text-slate-400">Integrity</p></div>
+                        <div><p className="text-sm font-black text-slate-900">{u.xp}</p><p className="text-[9px] font-black uppercase text-slate-400">XP</p></div>
+                      </div>
+                    </td>
+                    <td className="px-10 py-6 text-right">
+                      <button 
+                        onClick={() => handleToggleSuspend(u.id)}
+                        className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'}`}
+                      >
+                        {u.isSuspended ? 'Resume Node' : 'Suspend Node'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeAdminTab === 'analytics' && (
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
+              <div className="w-20 h-20 bg-brand/10 text-brand rounded-[2rem] flex items-center justify-center mx-auto"><Users size={32} /></div>
+              <div><p className="text-4xl font-black text-slate-900">{users.length}</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Nodes</p></div>
+            </div>
+            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
+              <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-[2rem] flex items-center justify-center mx-auto"><PieChart size={32} /></div>
+              <div><p className="text-4xl font-black text-slate-900">84%</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Avg Pulse Rate</p></div>
+            </div>
+            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
+              <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto"><CheckCircle size={32} /></div>
+              <div><p className="text-4xl font-black text-slate-900">22</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sync Reports OK</p></div>
             </div>
           </div>
-          <button onClick={submit} className="w-full py-7 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-[11px] tracking-widest shadow-2xl hover:bg-black transition-all">Publish Protocol</button>
+          <div className="bg-slate-900 p-16 rounded-[5rem] text-white">
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12">Performance Topology</h3>
+            <div className="space-y-10">
+              {['Computer Science', 'Pharmacy', 'Engineering'].map((dept, i) => (
+                <div key={dept} className="space-y-4">
+                  <div className="flex justify-between items-end"><p className="text-lg font-black uppercase tracking-tight">{dept}</p><p className="text-xs font-black text-brand">{80 + (i * 5)}% Sync</p></div>
+                  <div className="h-6 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-brand" style={{ width: `${80 + (i * 5)}%` }} /></div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {activeAdminTab === 'os' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
+            <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Palette className="text-brand" /> Interface Config</h3>
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Primary Brand Node</label>
+                <div className="flex gap-4">
+                  <input 
+                    type="color" 
+                    value={primaryColor} 
+                    onChange={e => setPrimaryColor(e.target.value)}
+                    className="w-20 h-20 rounded-2xl cursor-pointer border-4 border-slate-50 overflow-hidden" 
+                  />
+                  <input 
+                    type="text" 
+                    value={primaryColor} 
+                    onChange={e => setPrimaryColor(e.target.value)}
+                    className="flex-1 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-black uppercase text-sm outline-none focus:border-brand" 
+                  />
+                </div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">System Logo Protocol (URL)</label>
+                <input 
+                  type="text" 
+                  value={logo} 
+                  onChange={e => setLogo(e.target.value)}
+                  className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:border-brand" 
+                  placeholder="https://..." 
+                />
+              </div>
+            </div>
+          </div>
+          <div className="bg-brand/5 border-2 border-dashed border-brand/20 p-12 rounded-[4rem] flex flex-col justify-center text-center space-y-6">
+            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto shadow-xl">
+              <img src={logo} className="w-full h-full object-contain p-3" />
+            </div>
+            <h4 className="text-2xl font-black text-slate-900 uppercase">Real-time Preview</h4>
+            <div className="flex gap-4 justify-center">
+              <div className="w-12 h-12 bg-brand rounded-xl shadow-brand" />
+              <div className="w-12 h-12 bg-brand/50 rounded-xl" />
+              <div className="w-12 h-12 bg-brand/10 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -186,7 +406,7 @@ const RealisticMap = ({ buildings }: { buildings: CampusBuilding[] }) => {
     <div className="space-y-12 animate-in fade-in pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-7xl font-black uppercase tracking-tighter leading-none">Campus <span className="text-[#8B0000]">Mesh</span></h2>
+          <h2 className="text-7xl font-black uppercase tracking-tighter leading-none">Campus <span className="text-brand">Mesh</span></h2>
           <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Interactive geographic synchronization of building nodes.</p>
         </div>
       </div>
@@ -200,7 +420,7 @@ const RealisticMap = ({ buildings }: { buildings: CampusBuilding[] }) => {
                   <Building size={28} />
                 </div>
                 <div className="hover-card glass p-6 rounded-[2.5rem] shadow-brand">
-                  <p className="text-[10px] font-black uppercase text-[#8B0000] tracking-widest mb-1">Active Node</p>
+                  <p className="text-[10px] font-black uppercase text-brand tracking-widest mb-1">Active Node</p>
                   <h4 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">{b.name}</h4>
                 </div>
               </div>
@@ -223,207 +443,6 @@ const RealisticMap = ({ buildings }: { buildings: CampusBuilding[] }) => {
   );
 };
 
-// --- Edustone Hub ---
-const EdustoneHub = ({ courses, user, setUser, setSelectedCourse }: { courses: Course[], user: User, setUser: (u: User) => void, setSelectedCourse: (course: Course) => void }) => {
-  const registerCourse = (e: React.MouseEvent, courseId: string) => {
-    e.stopPropagation();
-    setUser({
-      ...user,
-      enrolledCourseIds: [...user.enrolledCourseIds, courseId],
-      xp: user.xp + 150
-    });
-  };
-
-  return (
-    <div className="space-y-12 pb-20 animate-in fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <h2 className="text-7xl font-black uppercase leading-none tracking-tighter text-slate-900">
-            {user.role === UserRole.FACULTY ? 'My Courses' : 'Edustone Hub'} <span className="text-[#8B0000]">Repository</span>
-          </h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">
-            {user.role === UserRole.FACULTY ? 'Manage curriculum nodes and monitor synchronization.' : 'Establish learning links with academic hubs.'}
-          </p>
-        </div>
-        {user.role === UserRole.FACULTY && (
-          <button className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-2xl flex items-center gap-4 hover:bg-black transition-all">
-            <PlusCircle size={20}/> Launch Repository
-          </button>
-        )}
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-        {courses.map(course => {
-          const isEnrolled = user.enrolledCourseIds.includes(course.id);
-          const isInstructor = user.role === UserRole.FACULTY && user.name === course.instructor;
-
-          return (
-            <div key={course.id} onClick={() => (isEnrolled || isInstructor) && setSelectedCourse(course)} className={`bg-white p-12 rounded-[4.5rem] border border-slate-100 shadow-sm group transition-all relative overflow-hidden ${isEnrolled || isInstructor ? 'hover:border-[#F0E68C] hover:shadow-2xl cursor-pointer' : 'opacity-90'}`}>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#F0E68C]/5 -rotate-45 translate-x-12 -translate-y-12 rounded-full pointer-events-none" />
-              <div className={`w-24 h-24 rounded-[2rem] flex items-center justify-center font-black text-4xl mb-12 shadow-inner transition-all duration-500 ${isEnrolled || isInstructor ? 'bg-[#F0E68C]/20 text-[#8B0000] group-hover:bg-[#8B0000] group-hover:text-white' : 'bg-slate-100 text-slate-300'}`}>{course.code[0]}</div>
-              <h4 className="text-3xl font-black uppercase tracking-tighter text-slate-900 leading-tight line-clamp-2 min-h-[4rem]">{course.name}</h4>
-              <div className="flex items-center gap-4 mt-6">
-                <img src={course.instructorImage} className="w-10 h-10 rounded-full border-2 border-slate-50 shadow-md object-cover" />
-                <p className="text-[12px] font-black text-slate-400 uppercase tracking-widest italic">{course.instructor}</p>
-              </div>
-              {!isEnrolled && !isInstructor && user.role === UserRole.STUDENT ? (
-                <button onClick={(e) => registerCourse(e, course.id)} className="mt-8 w-full py-5 bg-[#8B0000] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-brand flex items-center justify-center gap-3 hover:bg-black transition-all">
-                  <Zap size={16} fill="currentColor"/> Sync with Node
-                </button>
-              ) : (
-                <div className="flex gap-6 mt-12">
-                  <div className="flex-1 p-8 bg-slate-50 rounded-[2.5rem] text-center group-hover:bg-white transition-colors border border-transparent group-hover:border-slate-100"><p className="text-3xl font-black text-slate-900">{course.modules.reduce((acc, m) => acc + m.lectures.length, 0)}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2">Nodes</p></div>
-                  <div className="flex-1 p-8 bg-slate-50 rounded-[2.5rem] text-center group-hover:bg-white transition-colors border border-transparent group-hover:border-slate-100"><p className="text-3xl font-black text-slate-900">{course.modules.length}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2">Sections</p></div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-// --- Course Detail ---
-const CourseDetail = ({ course, user, onUpdateModules, onClose }: { course: Course, user: User, onUpdateModules: (modules: Module[]) => void, onClose: () => void }) => {
-  const [activeUploadModuleId, setActiveUploadModuleId] = useState<string | null>(null);
-  const canEdit = user.role === UserRole.FACULTY && user.name === course.instructor;
-
-  const handleAddModule = () => {
-    const title = prompt("Enter Module Identity (e.g. Week 5: Advanced Topics)");
-    if (title && title.trim()) {
-      onUpdateModules([...course.modules, { id: Math.random().toString(36).substr(2, 9), title: title.trim(), lectures: [] }]);
-    }
-  };
-
-  const handleUpload = (newLecture: Lecture) => {
-    if (!activeUploadModuleId) return;
-    const updatedModules = course.modules.map(m => m.id === activeUploadModuleId ? { ...m, lectures: [...m.lectures, newLecture] } : m);
-    onUpdateModules(updatedModules);
-    setActiveUploadModuleId(null);
-  };
-
-  return (
-    <div className="fixed inset-0 z-[2000] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in">
-      {activeUploadModuleId && <UploadModal onClose={() => setActiveUploadModuleId(null)} onUpload={handleUpload} />}
-      <div className="bg-white w-full max-w-5xl rounded-[4rem] overflow-hidden shadow-5xl border-[10px] border-[#F0E68C]/20 flex flex-col max-h-[90vh]">
-        <div className="h-64 academic-gradient relative p-16 flex items-end">
-          <button onClick={onClose} className="absolute top-10 right-10 p-4 bg-white/20 backdrop-blur-md text-white rounded-3xl hover:bg-white/40 transition-all"><X size={24}/></button>
-          <div className="flex items-center gap-10">
-            <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center font-black text-5xl text-[#8B0000] shadow-2xl">{course.code[0]}</div>
-            <div className="space-y-2">
-              <h2 className="text-5xl font-black text-white uppercase tracking-tighter leading-none">{course.name}</h2>
-              <p className="text-[#F0E68C] font-black uppercase text-sm tracking-[0.2em]">{course.code} • MASTER INSTRUCTOR: {course.instructor}</p>
-            </div>
-          </div>
-        </div>
-        <div className="p-16 overflow-y-auto custom-scrollbar grid grid-cols-1 lg:grid-cols-3 gap-16 bg-slate-50/50">
-          <div className="lg:col-span-2 space-y-12">
-            <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-black uppercase tracking-tight flex items-center gap-4 text-slate-400">Curriculum Mesh</h3>
-              {canEdit && <button onClick={handleAddModule} className="px-6 py-3 bg-[#8B0000] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 hover:scale-105 transition-all shadow-brand"><FolderPlus size={16}/> New Section</button>}
-            </div>
-            <div className="space-y-12">
-              {course.modules.map((m) => (
-                <div key={m.id} className="space-y-6">
-                  <div className="flex justify-between items-center px-4">
-                    <h4 className="text-xl font-black uppercase tracking-tighter text-slate-900 border-l-[6px] border-[#8B0000] pl-6">{m.title}</h4>
-                    {canEdit && <button onClick={() => setActiveUploadModuleId(m.id)} className="flex items-center gap-2 px-4 py-2 text-[#8B0000] font-black uppercase text-[10px] tracking-widest hover:bg-[#8B0000]/5 rounded-xl transition-all"><Plus size={16}/> Add Node</button>}
-                  </div>
-                  <div className="space-y-4">
-                    {m.lectures.length === 0 ? (
-                      <div className="p-10 border-2 border-dashed border-slate-200 rounded-[2.5rem] text-center bg-white/50"><p className="text-[10px] font-black uppercase text-slate-300 tracking-widest">Section Empty. Awaiting content synchronization.</p></div>
-                    ) : m.lectures.map((l) => (
-                      <div key={l.id} className="p-8 bg-white rounded-[2.5rem] border border-slate-100 flex items-center justify-between group hover:border-[#F0E68C] shadow-sm hover:shadow-xl transition-all cursor-pointer">
-                        <div className="flex items-center gap-8">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl transition-colors ${l.status === 'completed' ? 'bg-emerald-50 text-emerald-500' : 'bg-slate-50 text-slate-300 group-hover:bg-[#8B0000]/5 group-hover:text-[#8B0000]'}`}>
-                            {l.type === 'lecture' && <Play size={22} fill={l.status === 'completed' ? 'currentColor' : 'none'} />}
-                            {l.type === 'assignment' && <FileStack size={22} />}
-                            {l.type === 'reading' && <Book size={22} />}
-                            {l.type === 'quiz' && <CheckCircle size={22} />}
-                          </div>
-                          <div><p className="text-xl font-black uppercase tracking-tight text-slate-900">{l.title}</p><p className="text-[10px] text-slate-400 font-bold uppercase mt-2 tracking-widest">{l.type.toUpperCase()} • {l.duration}</p></div>
-                        </div>
-                        <div className="flex items-center gap-4">{l.url && <div className="p-3 bg-emerald-50 text-emerald-500 rounded-full"><LinkIcon size={20}/></div>}<div className="p-3 bg-slate-50 text-slate-400 rounded-full group-hover:bg-[#8B0000] group-hover:text-white transition-all"><ArrowRight size={20}/></div></div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-10">
-            <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm space-y-8 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-5"><GraduationCap size={100} /></div>
-              <h4 className="text-[12px] font-black uppercase text-slate-300 tracking-widest relative z-10">Verification Profile</h4>
-              <div className="flex items-center gap-6 relative z-10">
-                <img src={course.instructorImage} className="w-24 h-24 rounded-full border-4 border-slate-50 shadow-xl object-cover" />
-                <div><p className="text-xl font-black text-slate-900 uppercase leading-none">{course.instructor}</p><p className="text-[10px] font-black text-[#8B0000] uppercase mt-2 tracking-widest">Master Node</p></div>
-              </div>
-              <p className="text-sm text-slate-500 font-medium leading-relaxed italic relative z-10">{course.description}</p>
-            </div>
-            {canEdit ? (
-              <div className="p-10 bg-[#8B0000]/5 rounded-[4rem] border-2 border-dashed border-[#8B0000]/20 text-center space-y-6">
-                <div className="w-16 h-16 bg-[#8B0000] text-white rounded-2xl flex items-center justify-center mx-auto shadow-brand"><Zap size={28} fill="currentColor" /></div>
-                <h5 className="text-lg font-black uppercase tracking-tight text-[#8B0000]">Instructor Mode</h5>
-                <p className="text-[10px] font-black uppercase text-slate-400 leading-relaxed tracking-widest">Protocols active. Publish nodes and monitor synchronization.</p>
-              </div>
-            ) : (
-              <button className="w-full py-8 bg-[#8B0000] text-white rounded-[3rem] font-black uppercase text-[12px] shadow-brand hover:scale-[1.03] transition-all flex items-center justify-center gap-4"><Zap size={20} fill="currentColor" /> Course Synchronized</button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- Career Mesh ---
-const CareerHub = ({ user }: { user: User }) => {
-  const [filter, setFilter] = useState<'all' | 'full-time' | 'internship'>('all');
-  const filteredJobs = MOCK_JOBS.filter(job => filter === 'all' ? true : job.type === filter);
-
-  return (
-    <div className="space-y-12 pb-20 animate-in fade-in">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <h2 className="text-7xl font-black uppercase leading-none tracking-tighter text-slate-900">Career <span className="text-[#8B0000]">Mesh</span></h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Synchronize your trajectory with industry nodes.</p>
-        </div>
-        <div className="flex gap-2">
-          {['all', 'full-time', 'internship'].map((f) => (
-            <button key={f} onClick={() => setFilter(f as any)} className={`px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${filter === f ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 border border-slate-100 hover:bg-slate-50'}`}>{f}</button>
-          ))}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {filteredJobs.map(job => (
-          <div key={job.id} className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 -rotate-45 translate-x-12 -translate-y-12 rounded-full pointer-events-none group-hover:bg-[#8B0000]/5" />
-            <div className="flex justify-between items-start relative z-10">
-              <div className="space-y-4">
-                <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${job.type === 'internship' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'}`}>{job.type}</span>
-                <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">{job.title}</h3>
-                <div className="flex items-center gap-4 text-slate-400 font-bold uppercase text-[10px] tracking-widest">
-                  <div className="flex items-center gap-1"><BriefcaseIcon size={12}/> {job.company}</div>
-                  <div className="flex items-center gap-1"><MapPin size={12}/> {job.location}</div>
-                  {job.salary && <div className="flex items-center gap-1"><Zap size={12} className="text-[#F0E68C]" fill="currentColor"/> {job.salary}</div>}
-                </div>
-              </div>
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center font-black text-2xl text-slate-300 group-hover:bg-[#8B0000] group-hover:text-white transition-all">{job.company[0]}</div>
-            </div>
-            <div className="flex flex-wrap gap-2 mt-8">
-              {job.tags.map(tag => (
-                <span key={tag} className="px-3 py-1 bg-slate-50 text-slate-500 rounded-lg text-[10px] font-black uppercase tracking-tighter">#{tag}</span>
-              ))}
-            </div>
-            <button className="mt-10 w-full py-5 bg-[#8B0000] text-white rounded-2xl font-black uppercase text-[11px] tracking-widest shadow-brand hover:bg-black transition-all">Initiate Sync Protocol</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // --- Profile Hub ---
 const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -433,7 +452,6 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
   const handleAddSkill = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newSkill.trim()) return;
-    
     const updatedSkills = [...(user.skills || []), newSkill.trim()];
     setUser({ ...user, skills: updatedSkills });
     setNewSkill('');
@@ -458,7 +476,7 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
           <div className="pb-8 space-y-2">
             <h2 className="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">{user.name}</h2>
             <div className="flex items-center gap-4">
-              <span className="px-5 py-2 bg-[#8B0000] text-white text-[10px] font-black uppercase rounded-xl tracking-widest">{user.role}</span>
+              <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-widest">{user.role}</span>
               <span className="text-slate-400 font-black uppercase text-xs tracking-widest italic">{user.department} Department</span>
             </div>
           </div>
@@ -468,25 +486,15 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
         <div className="lg:col-span-2 space-y-12">
           <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-8">
             <div className="flex justify-between items-center">
-              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 flex items-center gap-4"><Edit3 className="text-[#8B0000]" size={24} /> Neural Summary</h3>
+              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 flex items-center gap-4"><Edit3 className="text-brand" size={24} /> Neural Summary</h3>
               {!isEditing ? (
                 <button onClick={() => setIsEditing(true)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 transition-colors"><Edit3 size={18}/></button>
               ) : (
-                <button 
-                  onClick={handleSyncProfile} 
-                  className="px-6 py-2 bg-[#8B0000] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-brand hover:scale-105 transition-all"
-                >
-                  Sync Profile
-                </button>
+                <button onClick={handleSyncProfile} className="px-6 py-2 bg-brand text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-brand hover:scale-105 transition-all">Sync Profile</button>
               )}
             </div>
             {isEditing ? (
-              <textarea 
-                value={bio} 
-                onChange={e => setBio(e.target.value)} 
-                className="w-full h-32 p-6 bg-slate-50 border border-slate-100 rounded-3xl font-medium outline-none focus:border-[#8B0000] transition-colors resize-none" 
-                placeholder="Enter your new bio protocol..."
-              />
+              <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full h-32 p-6 bg-slate-50 border border-slate-100 rounded-3xl font-medium outline-none focus:border-brand transition-colors resize-none" placeholder="Enter your new bio protocol..." />
             ) : (
               <p className="text-xl text-slate-600 font-medium leading-relaxed italic">"{user.bio || 'Node active. Awaiting synchronization.'}"</p>
             )}
@@ -496,7 +504,7 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
               { label: 'XP Pulse', value: user.xp, icon: <Zap fill="currentColor"/>, color: 'text-[#F0E68C]' },
               { label: 'Streak', value: user.streak, icon: <Flame fill="currentColor"/>, color: 'text-orange-500' },
               { label: 'Attendance', value: `${user.attendance}%`, icon: <CheckCircle/>, color: 'text-emerald-500' },
-              { label: 'Projects', value: user.projects?.length || 0, icon: <FileStack/>, color: 'text-[#8B0000]' }
+              { label: 'Projects', value: user.projects?.length || 0, icon: <FileStack/>, color: 'text-brand' }
             ].map((stat, i) => (
               <div key={i} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm text-center space-y-3 group hover:border-[#F0E68C] transition-all">
                 <div className={`mx-auto w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${stat.color} group-hover:scale-110 transition-transform`}>{stat.icon}</div>
@@ -515,32 +523,11 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
                 <p className="text-[10px] uppercase font-black text-slate-500">No skill nodes active.</p>
               )}
             </div>
-            
-            {/* Add Skill Input Section */}
             <div className="mt-8 pt-8 border-t border-white/10">
               <form onSubmit={handleAddSkill} className="flex gap-2">
-                <input 
-                  type="text" 
-                  value={newSkill} 
-                  onChange={e => setNewSkill(e.target.value)}
-                  placeholder="New Skill Node..." 
-                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-[#F0E68C] transition-colors"
-                />
-                <button 
-                  type="submit"
-                  className="p-2 bg-[#F0E68C] text-[#8B0000] rounded-xl hover:scale-110 transition-transform shadow-xl"
-                  title="Establish Skill Link"
-                >
-                  <Plus size={20} />
-                </button>
+                <input type="text" value={newSkill} onChange={e => setNewSkill(e.target.value)} placeholder="New Skill Node..." className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-[#F0E68C] transition-colors" />
+                <button type="submit" className="p-2 bg-[#F0E68C] text-[#8B0000] rounded-xl hover:scale-110 transition-transform shadow-xl"><Plus size={20} /></button>
               </form>
-            </div>
-          </div>
-          <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-6">
-            <h3 className="text-lg font-black uppercase tracking-widest text-slate-900">Digital Identity</h3>
-            <div className="space-y-4">
-              <a href="#" className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl group hover:bg-slate-900 hover:text-white transition-all"><div className="flex items-center gap-4"><Github size={20}/><span className="text-[11px] font-black uppercase tracking-widest">Repository Sync</span></div><ExternalLink size={16}/></a>
-              <a href="#" className="flex items-center justify-between p-5 bg-slate-50 rounded-2xl group hover:bg-slate-900 hover:text-white transition-all"><div className="flex items-center gap-4"><Linkedin size={20}/><span className="text-[11px] font-black uppercase tracking-widest">Professional Mesh</span></div><ExternalLink size={16}/></a>
             </div>
           </div>
         </div>
@@ -552,12 +539,17 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
 // --- Sidebar ---
 const Sidebar = ({ activeTab, setActiveTab, user, onLogout, logo }: any) => {
   const dynamicNav = useMemo(() => {
-    return NAV_ITEMS.map(i => {
-      if (i.id === 'edustone' && user.role === UserRole.FACULTY) {
-        return { ...i, label: 'My Courses' };
-      }
+    let items = NAV_ITEMS.map(i => {
+      if (i.id === 'edustone' && user.role === UserRole.FACULTY) return { ...i, label: 'My Courses' };
       return i;
-    }).concat([{ id: 'tech-news', label: 'Tech Pulse', icon: <Globe size={20} /> }]);
+    });
+    if (user.role === UserRole.ADMIN) {
+      items = [
+        { id: 'admin', label: 'Command Center', icon: <ShieldAlert size={20} /> },
+        ...items
+      ];
+    }
+    return items.concat([{ id: 'tech-news', label: 'Tech Pulse', icon: <Globe size={20} /> }]);
   }, [user.role]);
 
   return (
@@ -570,8 +562,12 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, logo }: any) => {
       </div>
       <nav className="flex-1 space-y-3 overflow-y-auto custom-scrollbar no-scrollbar">
         {dynamicNav.map((item) => (
-          <button key={item.id} onClick={() => setActiveTab(item.id)} className={`w-full flex items-center gap-5 px-8 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all group ${activeTab === item.id ? 'bg-[#8B0000] text-white shadow-2xl shadow-[#8B0000]/20' : 'text-slate-400 hover:bg-slate-50'}`}>
-            <div className={`${activeTab === item.id ? 'text-white' : 'text-slate-300 group-hover:text-[#8B0000]'}`}>{item.icon}</div>
+          <button 
+            key={item.id} 
+            onClick={() => setActiveTab(item.id)} 
+            className={`w-full flex items-center gap-5 px-8 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all group ${activeTab === item.id ? 'active-nav text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
+          >
+            <div className={`${activeTab === item.id ? 'text-white' : 'text-slate-300 group-hover:text-brand'}`}>{item.icon}</div>
             <span className="truncate">{item.label}</span>
           </button>
         ))}
@@ -583,51 +579,100 @@ const Sidebar = ({ activeTab, setActiveTab, user, onLogout, logo }: any) => {
   );
 };
 
-// --- UnistoneAI ---
+// --- UNISTONE AI Component ---
 const UnistoneAI = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai', text: string }[]>([{ role: 'ai', text: "Greetings, Node. I am UNISTONE AI. How can I assist your synchronization today?" }]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [messages]);
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
-  const handleSend = async () => {
-    if (!query.trim() || loading) return;
-    const userMsg = query;
-    setQuery('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading) return;
+
+    const userMsg = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
     setLoading(true);
+
     try {
       const response = await askUnistoneAI(userMsg);
-      setMessages(prev => [...prev, { role: 'ai', text: response }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'ai', text: "Critical failure in neural link. Please check your credentials." }]);
-    } finally { setLoading(false); }
+      setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: "Neural sync interrupted. Please reconnect." }]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <>
-      <button onClick={() => setIsOpen(true)} className="fixed bottom-10 right-10 w-20 h-20 bg-[#8B0000] text-white rounded-full shadow-4xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-[1000] border-4 border-white"><Bot size={32} /><div className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full border-2 border-white animate-pulse" /></button>
-      {isOpen && (
-        <div className="fixed inset-0 z-[5000] flex items-end justify-end p-10 pointer-events-none">
-          <div className="bg-white w-full max-w-md h-[70vh] rounded-[4rem] shadow-5xl border-[10px] border-[#8B0000]/10 flex flex-col pointer-events-auto animate-in slide-in-from-bottom duration-500">
-            <div className="p-8 bg-[#8B0000] text-white flex justify-between items-center rounded-t-[3rem]"><div className="flex items-center gap-4"><Bot size={24} /><h3 className="text-xl font-black uppercase tracking-tighter">Unistone AI</h3></div><button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-colors"><X size={20}/></button></div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar">
-              {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[85%] p-6 rounded-[2rem] font-medium text-sm leading-relaxed ${m.role === 'user' ? 'bg-[#8B0000] text-white shadow-brand' : 'bg-slate-50 text-slate-700'}`}>{m.text}</div></div>
-              ))}
-              {loading && <div className="flex justify-start"><div className="bg-slate-50 p-6 rounded-[2rem] animate-pulse text-slate-400 font-black text-xs uppercase tracking-widest">Processing Node...</div></div>}
+    <div className="fixed bottom-10 right-10 z-[1000]">
+      {!isOpen ? (
+        <button 
+          onClick={() => setIsOpen(true)}
+          className="w-20 h-20 bg-brand text-white rounded-full shadow-brand flex items-center justify-center hover:scale-110 active:scale-95 transition-all group"
+        >
+          <Bot size={32} className="group-hover:rotate-12 transition-transform" />
+        </button>
+      ) : (
+        <div className="w-96 h-[32rem] bg-white rounded-[3rem] shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-10">
+          <header className="p-8 bg-brand text-white flex justify-between items-center academic-gradient">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md border border-white/20"><Bot size={20}/></div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]">Unistone AI</p>
+                <p className="text-[9px] font-bold opacity-70 uppercase tracking-widest">Active Link</p>
+              </div>
             </div>
-            <div className="p-8 border-t border-slate-100 flex gap-4 bg-white rounded-b-[4rem]">
-              <input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSend()} placeholder="Ask the campus core..." className="flex-1 px-6 py-4 bg-slate-50 rounded-2xl border border-transparent focus:border-[#8B0000] outline-none font-bold transition-all" />
-              <button onClick={handleSend} className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all shadow-xl"><Send size={20}/></button>
-            </div>
+            <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-white/10 rounded-lg transition-colors"><X size={20}/></button>
+          </header>
+          
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar scroll-smooth">
+            {messages.length === 0 && (
+              <div className="text-center py-10 space-y-4">
+                <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto text-brand"><Zap size={24}/></div>
+                <p className="text-[10px] font-black uppercase text-slate-300 tracking-[0.2em]">Link Established. Awaiting Pulse.</p>
+              </div>
+            )}
+            {messages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] p-5 rounded-[2rem] text-xs font-bold leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-brand text-white rounded-tr-none' : 'bg-slate-50 text-slate-700 rounded-tl-none border border-slate-100'}`}>
+                  {m.content}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-50 p-5 rounded-[2rem] rounded-tl-none border border-slate-100 flex gap-1.5 items-center">
+                  <div className="w-1.5 h-1.5 bg-brand/40 rounded-full animate-bounce" />
+                  <div className="w-1.5 h-1.5 bg-brand/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                  <div className="w-1.5 h-1.5 bg-brand/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                </div>
+              </div>
+            )}
           </div>
+
+          <form onSubmit={handleSend} className="p-6 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <input 
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Query the mesh..."
+              className="flex-1 bg-white border border-slate-100 rounded-2xl px-6 py-4 text-xs font-bold outline-none focus:border-brand transition-all shadow-inner"
+            />
+            <button type="submit" disabled={!input.trim() || loading} className="p-4 bg-brand text-white rounded-2xl shadow-brand hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100">
+              <Send size={18} />
+            </button>
+          </form>
         </div>
       )}
-    </>
+    </div>
   );
 };
 
@@ -637,62 +682,94 @@ export default function App() {
     const saved = localStorage.getItem('unistone-user');
     return saved ? JSON.parse(saved) : null;
   });
-  const [logo] = useSyncedState('unistone-logo', 'https://colleges18.s3.ap-south-1.amazonaws.com/Sage_univ_indore_b02eee0e17.jpg');
+  
+  const [logo, setLogo] = useSyncedState('unistone-logo', 'https://colleges18.s3.ap-south-1.amazonaws.com/Sage_univ_indore_b02eee0e17.jpg');
+  const [primaryColor, setPrimaryColor] = useSyncedState('unistone-brand-color', '#8B0000');
+  const [buildings, setBuildings] = useSyncedState<CampusBuilding[]>('unistone-campus-nodes', MOCK_BUILDINGS);
+  const [users, setUsers] = useSyncedState<User[]>('unistone-user-registry', []);
   const [courses, setCourses] = useSyncedState<Course[]>('unistone-courses-dynamic', MOCK_COURSES);
+  
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  
+  // Initialize user registry if empty
+  // Fix typos in property names (enrolleCourseIds -> enrolledCourseIds)
+  useEffect(() => {
+    if (users.length === 0) {
+      const initialUsers: User[] = [
+        { id: 'FAC-301-A', name: 'Dr. Alan Turing', email: 'turing@unistone.edu', role: UserRole.FACULTY, department: 'CS', attendance: 95, xp: 50000, streak: 30, enrolledCourseIds: [] },
+        { id: 'STU-2024-X', name: 'Sarah Connor', email: 'sarah@unistone.edu', role: UserRole.STUDENT, department: 'CS', attendance: 88, xp: 12400, streak: 12, enrolledCourseIds: [] }
+      ];
+      setUsers(initialUsers);
+    }
+  }, []);
 
-  useEffect(() => { if (user) localStorage.setItem('unistone-user', JSON.stringify(user)); else localStorage.removeItem('unistone-user'); }, [user]);
+  useEffect(() => { 
+    if (user) {
+      localStorage.setItem('unistone-user', JSON.stringify(user));
+      if (user.role === UserRole.ADMIN) setActiveTab('admin');
+    } else {
+      localStorage.removeItem('unistone-user');
+    }
+  }, [user]);
 
   if (!user) return <AuthView onLogin={setUser} logo={logo} />;
+  if (user.isSuspended) return (
+    <div className="min-h-screen flex items-center justify-center academic-gradient p-12 text-white">
+      <div className="max-w-xl text-center space-y-8 animate-in zoom-in-95">
+        <ShieldAlert size={100} className="mx-auto text-[#F0E68C] animate-pulse" />
+        <h2 className="text-6xl font-black uppercase tracking-tighter">Node Suspended</h2>
+        <p className="text-xl font-medium italic opacity-80">Your synchronization privileges have been revoked by the core authority. Please contact the Command Center for reactivation.</p>
+        <button onClick={() => setUser(null)} className="px-12 py-5 bg-white text-brand rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-110 transition-all">Disconnect</button>
+      </div>
+    </div>
+  );
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'admin': return <AdminHub buildings={buildings} setBuildings={setBuildings} users={users} setUsers={setUsers} logo={logo} setLogo={setLogo} primaryColor={primaryColor} setPrimaryColor={setPrimaryColor} />;
       case 'dashboard': return (
         <div className="space-y-16 pb-20 animate-in fade-in">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
-              <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">System <span className="text-[#8B0000]">Feed</span></h2>
-              <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Identity synchronized as <span className="text-[#8B0000] font-black">{user.role.toUpperCase()}</span>.</p>
+              <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">System <span className="text-brand">Feed</span></h2>
+              <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Identity synchronized as <span className="text-brand font-black">{user.role.toUpperCase()}</span>.</p>
             </div>
             <div className="flex gap-4">
               <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm text-center"><p className="text-3xl font-black text-slate-900">{user.streak}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1">Streak</p></div>
-              <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm text-center"><p className="text-3xl font-black text-[#8B0000]">{user.attendance}%</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1">Integrity</p></div>
+              <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm text-center"><p className="text-3xl font-black text-brand">{user.attendance}%</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1">Integrity</p></div>
             </div>
           </header>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mt-16">
-            <div className="bg-slate-900 p-14 rounded-[5rem] text-white relative overflow-hidden group">
-              <h3 className="text-4xl font-black uppercase tracking-tighter mb-8 flex items-center gap-4"><TrendingUp size={32} className="text-[#F0E68C]" /> Tech Pulse</h3>
-              <div className="space-y-8">
-                {MOCK_NEWS.slice(0, 2).map(news => (
-                  <div key={news.id} className="flex gap-8 group/item cursor-pointer">
-                    <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden shrink-0"><img src={news.image} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" /></div>
-                    <div className="flex flex-col justify-center"><h4 className="text-xl font-black uppercase tracking-tight line-clamp-2 group-hover/item:text-[#F0E68C] transition-colors">{news.title}</h4><p className="text-[10px] font-black uppercase text-slate-400 mt-3">{news.source} • {news.readTime}</p></div>
+          {/* Dashboard Body */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <div className="bg-slate-900 p-14 rounded-[5rem] text-white space-y-8">
+              <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4"><TrendingUp className="text-[#F0E68C]" /> Neural Pulse</h3>
+              <div className="space-y-6">
+                {MOCK_NEWS.slice(0, 2).map(n => (
+                  <div key={n.id} className="flex gap-6 group cursor-pointer">
+                    <img src={n.image} className="w-24 h-24 rounded-2xl object-cover" />
+                    <div><h4 className="font-black uppercase text-sm line-clamp-2">{n.title}</h4><p className="text-[9px] font-black text-slate-400 mt-2">{n.source}</p></div>
                   </div>
                 ))}
               </div>
-              <button onClick={() => setActiveTab('tech-news')} className="mt-12 text-[#F0E68C] font-black uppercase text-xs tracking-widest flex items-center gap-2">Open Neural Pulse <ArrowRight size={14}/></button>
             </div>
-            <div className="bg-white p-14 rounded-[5rem] border border-slate-100 shadow-sm relative overflow-hidden">
-               <h3 className="text-4xl font-black uppercase tracking-tighter mb-8 flex items-center gap-4 text-slate-900"><Calendar size={32} className="text-[#8B0000]" /> Campus Pulse</h3>
-              <div className="space-y-10">
-                {MOCK_EVENTS.map(e => (
-                  <div key={e.id} className="flex items-center justify-between group cursor-pointer" onClick={() => setActiveTab('events')}>
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-[#F0E68C]/20 text-[#8B0000] rounded-2xl flex flex-col items-center justify-center border border-[#F0E68C]/40"><p className="text-[10px] font-black leading-none">{e.date.split(' ')[0]}</p><p className="text-xl font-black leading-none mt-1">{e.date.split(' ')[1]}</p></div>
-                      <div><h4 className="text-xl font-black uppercase tracking-tight text-slate-900">{e.title}</h4><p className="text-[10px] font-black uppercase text-slate-400 mt-1">{e.location}</p></div>
-                    </div>
-                    <ChevronRight className="text-slate-200 group-hover:text-[#8B0000]" />
-                  </div>
-                ))}
-              </div>
+            <div className="bg-white p-14 rounded-[5rem] border border-slate-100 shadow-sm">
+               <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Calendar className="text-brand" /> Hub Events</h3>
+               <div className="space-y-6 mt-6">
+                 {MOCK_EVENTS.map(e => (
+                   <div key={e.id} className="flex items-center justify-between">
+                     <div className="flex gap-4">
+                       <div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex flex-col items-center justify-center font-black text-[10px]"><span>OCT</span><span>24</span></div>
+                       <div><p className="font-black uppercase text-sm">{e.title}</p><p className="text-[9px] font-bold text-slate-400">{e.location}</p></div>
+                     </div>
+                     <ChevronRight className="text-slate-200" />
+                   </div>
+                 ))}
+               </div>
             </div>
           </div>
         </div>
       );
-      case 'navigation': return <RealisticMap buildings={MOCK_BUILDINGS} />;
-      case 'edustone': return <EdustoneHub courses={courses} user={user} setUser={setUser} setSelectedCourse={setSelectedCourse} />;
-      case 'careers': return <CareerHub user={user} />;
+      case 'navigation': return <RealisticMap buildings={buildings} />;
       case 'profile': return <ProfileHub user={user} setUser={setUser} />;
       default: return <div className="p-20 text-center"><h2 className="text-5xl font-black uppercase text-slate-900">Module Synchronizing...</h2></div>;
     }
@@ -700,23 +777,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen gradient-bg">
+      <ThemeProvider primaryColor={primaryColor} />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={() => setUser(null)} logo={logo} />
       <main className="md:ml-72 p-6 md:p-14 h-screen overflow-y-auto custom-scrollbar no-scrollbar scroll-smooth">
         {renderContent()}
       </main>
       <UnistoneAI />
-      {selectedCourse && (
-        <CourseDetail 
-          course={selectedCourse} 
-          user={user} 
-          onUpdateModules={(newModules) => {
-            const updatedCourses = courses.map(c => c.id === selectedCourse.id ? { ...c, modules: newModules } : c);
-            setCourses(updatedCourses);
-            setSelectedCourse({ ...selectedCourse, modules: newModules });
-          }} 
-          onClose={() => setSelectedCourse(null)} 
-        />
-      )}
     </div>
   );
 }
