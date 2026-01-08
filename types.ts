@@ -36,6 +36,7 @@ export interface User {
   linkedinUrl?: string;
   profileImage?: string;
   coverImage?: string;
+  enrolledCourseIds: string[]; // Added to track course registrations
 }
 
 export interface Lecture {
@@ -48,6 +49,12 @@ export interface Lecture {
   fileType?: string;
 }
 
+export interface Module {
+  id: string;
+  title: string;
+  lectures: Lecture[];
+}
+
 export interface Course {
   id: string;
   name: string;
@@ -56,7 +63,7 @@ export interface Course {
   instructorImage?: string;
   notesCount: number;
   lecturesCount: number;
-  lectures: Lecture[];
+  modules: Module[];
   description: string;
 }
 
