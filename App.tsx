@@ -6,7 +6,7 @@ import {
   Clock, ScanFace, CheckCircle, AlertCircle, PlaySquare, Image as ImageIcon, 
   Film, Save, Eye, Github, Linkedin, Network, Building, Zap, ArrowRight,
   TrendingUp, Globe, Smartphone, Laptop, Filter, Check, Camera, Upload,
-  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette, Target, BarChart3, Globe2
+  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette, Target, BarChart3, Globe2, ShieldCheck, UserCheck
 } from 'lucide-react';
 import { User, UserRole, Video as VideoType, CampusBuilding, Course, CampusEvent, Job, NewsArticle, Applicant, Lecture, Module } from './types';
 import { NAV_ITEMS, MOCK_BUILDINGS, MOCK_COURSES, MOCK_VIDEOS, MOCK_EVENTS, MOCK_NEWS, MOCK_JOBS } from './constants';
@@ -53,6 +53,7 @@ const ThemeProvider = ({ primaryColor }: { primaryColor: string }) => {
 // --- Auth View ---
 const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: string }) => {
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>(UserRole.STUDENT);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,23 +61,20 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
     const email = (e.target as any).email.value;
     
     setTimeout(() => {
-      const emailLower = email.toLowerCase();
-      const isFaculty = emailLower.includes('faculty');
-      const isAdmin = emailLower.includes('admin');
-      
+      const idPrefix = selectedRole === UserRole.ADMIN ? 'ADM' : (selectedRole === UserRole.FACULTY ? 'FAC' : 'STU');
       onLogin({
-        id: isAdmin ? 'ADMIN-CORE' : (isFaculty ? 'FAC-301-A' : 'STU-2024-X'), 
-        name: isAdmin ? 'System Admin' : (isFaculty ? 'Dr. Alan Turing' : 'Sarah Connor'), 
-        email: email, 
-        role: isAdmin ? UserRole.ADMIN : (isFaculty ? UserRole.FACULTY : UserRole.STUDENT),
-        department: isAdmin ? 'Administration' : 'CS', 
-        attendance: isAdmin ? 100 : 88, 
-        xp: isAdmin ? 99999 : 12400, 
-        streak: 12, 
-        bio: isAdmin ? 'Core System Overseer' : 'Synchronizing intelligence nodes.',
-        skills: isAdmin ? ['Security', 'Logistics'] : ['React', 'Python', 'AI'], 
-        profileImage: isAdmin ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop' : (isFaculty ? 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop' : 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop'),
-        enrolledCourseIds: isFaculty ? ['c1', 'c2'] : []
+        id: `${idPrefix}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`, 
+        name: selectedRole === UserRole.ADMIN ? 'System Administrator' : (selectedRole === UserRole.FACULTY ? 'Faculty Member' : 'University Student'), 
+        email: email || `${selectedRole}@unistone.edu`, 
+        role: selectedRole,
+        department: selectedRole === UserRole.ADMIN ? 'Administration' : 'Academic Core', 
+        attendance: selectedRole === UserRole.ADMIN ? 100 : 92, 
+        xp: selectedRole === UserRole.ADMIN ? 99999 : 5000, 
+        streak: 5, 
+        bio: `Authenticated as ${selectedRole.toUpperCase()}`,
+        skills: ['Intelligence', 'Collaboration'], 
+        profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedRole}`,
+        enrolledCourseIds: []
       });
       setLoading(false);
     }, 800);
@@ -84,39 +82,81 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gradient-bg">
-      <div className="w-full max-w-4xl bg-white rounded-[3rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white">
-        <div className="md:w-1/2 p-12 text-white academic-gradient flex flex-col justify-between">
-          <div>
-            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-8 shadow-xl overflow-hidden">
-              <img src={logo} alt="Logo" className="w-full h-full object-contain p-2" />
+      <div className="w-full max-w-5xl bg-white rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white">
+        {/* Left Branding Panel */}
+        <div className="md:w-5/12 p-16 text-white academic-gradient flex flex-col justify-between relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
+          <div className="relative z-10">
+            <div className="w-28 h-28 bg-white rounded-3xl flex items-center justify-center mb-10 shadow-xl overflow-hidden p-4">
+              <img src={logo} alt="Logo" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter mb-4 uppercase">UNISTONE</h1>
-            <p className="text-[#F0E68C] text-lg font-medium tracking-tight">Synchronized Smart Campus OS</p>
+            <h1 className="text-6xl font-black tracking-tighter mb-4 uppercase leading-none">UNISTONE</h1>
+            <p className="text-[#F0E68C] text-xl font-medium tracking-tight opacity-90">Synchronized Campus OS</p>
           </div>
-          <div className="p-5 bg-white/10 rounded-[1.5rem] backdrop-blur-md border border-white/20 text-[10px] font-black uppercase tracking-widest text-center">Verified Node</div>
+          <div className="relative z-10 space-y-4">
+            <div className="p-6 bg-white/10 rounded-[2rem] backdrop-blur-md border border-white/20 text-[11px] font-black uppercase tracking-widest flex items-center gap-4">
+              <ShieldCheck className="text-[#F0E68C]" /> Verified Security Node
+            </div>
+            <p className="text-[10px] uppercase font-bold opacity-60 tracking-[0.2em]">Build 2.5.1-Release</p>
+          </div>
         </div>
-        <div className="md:w-1/2 p-12 bg-white flex flex-col justify-center">
-          <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-8 uppercase">Establish Link</h2>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="relative">
-              <Mail className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input name="email" type="email" required placeholder="Email (use 'admin' or 'faculty' for roles)" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-brand" />
+
+        {/* Right Login Panel */}
+        <div className="md:w-7/12 p-16 bg-white flex flex-col justify-center">
+          <div className="mb-12">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase leading-tight">Identity <span className="text-brand">Verification</span></h2>
+            <p className="text-slate-400 font-medium">Select your role to establish identity link.</p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mb-10">
+            {[UserRole.STUDENT, UserRole.FACULTY, UserRole.ADMIN].map(role => (
+              <button 
+                key={role}
+                onClick={() => setSelectedRole(role)}
+                className={`flex flex-col items-center gap-2 py-4 rounded-[1.5rem] border-2 transition-all ${selectedRole === role ? 'bg-brand/5 border-brand text-brand shadow-brand' : 'bg-slate-50 border-transparent text-slate-400 hover:border-slate-200'}`}
+              >
+                {role === UserRole.ADMIN ? <ShieldAlert size={20}/> : (role === UserRole.FACULTY ? <GraduationCap size={20}/> : <Users size={20}/>)}
+                <span className="text-[10px] font-black uppercase tracking-widest">{role}</span>
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="relative group">
+              <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-brand transition-colors" size={20} />
+              <input name="email" type="email" required placeholder="University ID / Email" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
             </div>
-            <div className="relative">
-              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              <input name="password" type="password" required placeholder="Credential" className="w-full pl-14 pr-6 py-4 bg-slate-50 border rounded-2xl outline-none focus:border-brand" />
+            <div className="relative group">
+              <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-brand transition-colors" size={20} />
+              <input name="password" type="password" required placeholder="Access Protocol" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
             </div>
-            <button disabled={loading} className="w-full py-5 bg-brand text-white font-black rounded-2xl shadow-xl uppercase text-[11px] tracking-widest hover:opacity-90 transition-all">
-              {loading ? 'Synchronizing...' : 'Establish Connection'}
+            
+            <button disabled={loading} className="w-full py-6 bg-brand text-white font-black rounded-3xl shadow-brand uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-95 transition-all">
+              {loading ? 'Establishing Link...' : 'Synchronize Identity'}
             </button>
           </form>
+
+          <div className="mt-12 pt-8 border-t border-slate-50 text-center">
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4">Direct Admin Access</p>
+            <button 
+              onClick={() => {
+                setSelectedRole(UserRole.ADMIN);
+                setTimeout(() => {
+                  (document.querySelector('form button') as HTMLButtonElement)?.click();
+                }, 100);
+              }} 
+              className="px-8 py-3 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all inline-flex items-center gap-2"
+            >
+              Admin Hub Shortcut <ArrowRight size={14}/>
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- Admin Hub Components ---
+// --- Admin Components ---
 
 const AdminCampusManager = ({ buildings, setBuildings }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -133,118 +173,75 @@ const AdminCampusManager = ({ buildings, setBuildings }: any) => {
     ));
   };
 
-  const selectedBuilding = buildings.find((b: any) => b.id === editingId);
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-      <div className="lg:col-span-8 space-y-8">
-        <div className="bg-white p-8 rounded-[4rem] border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Live Node Mesh</h3>
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Click on map to position selected building</p>
-          </div>
-          <div 
-            ref={mapContainerRef}
-            onClick={handleMapClick}
-            className="h-[500px] bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden cursor-crosshair"
-          >
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 L40 0 M0 0 L40 40' stroke='%23000' fill='none' stroke-width='0.5'/%3E%3C/svg%3E")` }} />
-            {buildings.map((b: any) => (
-              <div 
-                key={b.id} 
-                className={`absolute w-12 h-12 rounded-2xl flex items-center justify-center text-white border-4 border-white shadow-xl transition-all -translate-x-1/2 -translate-y-1/2 ${editingId === b.id ? 'scale-125 z-50 ring-4 ring-brand animate-pulse' : 'z-10'} ${b.color}`}
-                style={{ top: b.mapCoords.top, left: b.mapCoords.left }}
-                onClick={(e) => { e.stopPropagation(); setEditingId(b.id); }}
-              >
-                <Building size={20} />
-              </div>
-            ))}
-          </div>
+    <div className="space-y-12">
+      <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm relative">
+        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 mb-8 flex items-center gap-4"><MapPin className="text-brand"/> Live Node Mesh Editor</h3>
+        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6">Select a building below, then click on the map to place its coordinate node.</p>
+        <div 
+          ref={mapContainerRef}
+          onClick={handleMapClick}
+          className="h-[600px] bg-slate-50 rounded-[3rem] border border-slate-200 relative overflow-hidden cursor-crosshair shadow-inner"
+        >
+          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 60 L60 0 M0 0 L60 60' stroke='%23000' fill='none' stroke-width='0.5'/%3E%3C/svg%3E")` }} />
+          {buildings.map((b: any) => (
+            <div 
+              key={b.id} 
+              className={`absolute w-14 h-14 rounded-3xl flex items-center justify-center text-white border-4 border-white shadow-2xl transition-all -translate-x-1/2 -translate-y-1/2 ${editingId === b.id ? 'scale-125 z-50 ring-8 ring-brand/20 animate-pulse' : 'z-10'} ${b.color}`}
+              style={{ top: b.mapCoords.top, left: b.mapCoords.left }}
+              onClick={(e) => { e.stopPropagation(); setEditingId(b.id); }}
+            >
+              <Building size={24} />
+              {editingId === b.id && (
+                <div className="absolute top-16 bg-brand text-white text-[8px] font-black uppercase px-3 py-1 rounded-full whitespace-nowrap shadow-brand">Active Placement</div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-      <div className="lg:col-span-4 space-y-8 h-[600px] overflow-y-auto custom-scrollbar pr-2">
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {buildings.map((b: any) => (
           <div 
             key={b.id} 
             onClick={() => setEditingId(b.id)}
-            className={`bg-white p-8 rounded-[3rem] border transition-all cursor-pointer group ${editingId === b.id ? 'border-brand shadow-brand ring-1 ring-brand' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}
+            className={`bg-white p-8 rounded-[3rem] border-2 transition-all cursor-pointer group ${editingId === b.id ? 'border-brand shadow-brand scale-[1.02]' : 'border-slate-100 shadow-sm hover:border-slate-200'}`}
           >
             <div className="flex gap-6 items-center">
-              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shrink-0 ${b.color}`}><Building size={28} /></div>
+              <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white shrink-0 shadow-lg ${b.color}`}><Building size={24} /></div>
               <div className="flex-1 min-w-0">
                 <h4 className="text-lg font-black uppercase truncate">{b.name}</h4>
-                <div className="flex gap-4 mt-1">
-                  <span className="text-[9px] font-black uppercase text-slate-400">T: {b.mapCoords.top}</span>
-                  <span className="text-[9px] font-black uppercase text-slate-400">L: {b.mapCoords.left}</span>
+                <div className="flex gap-4 mt-2">
+                   <div className="flex flex-col"><p className="text-[8px] font-black uppercase text-slate-300">Top</p><p className="text-xs font-bold text-slate-900">{b.mapCoords.top}</p></div>
+                   <div className="flex flex-col"><p className="text-[8px] font-black uppercase text-slate-300">Left</p><p className="text-xs font-bold text-slate-900">{b.mapCoords.left}</p></div>
                 </div>
               </div>
               <button 
                 onClick={(e) => { e.stopPropagation(); setBuildings(buildings.filter((x: any) => x.id !== b.id)); }}
-                className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-              >
-                <Trash2 size={18} />
-              </button>
+                className="p-3 text-red-300 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
+              ><Trash2 size={20} /></button>
             </div>
-            {editingId === b.id && (
-              <div className="mt-8 pt-8 border-t border-slate-50 space-y-4 animate-in slide-in-from-top-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-black uppercase text-slate-400">Building Image</label>
-                  <input 
-                    type="text" 
-                    value={b.image} 
-                    onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, image: e.target.value } : x))}
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase text-slate-400">Floors</label>
-                    <input 
-                      type="number" 
-                      value={b.floors} 
-                      onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, floors: parseInt(e.target.value) } : x))}
-                      className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-black uppercase text-slate-400">Theme Class</label>
-                    <input 
-                      type="text" 
-                      value={b.color} 
-                      onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, color: e.target.value } : x))}
-                      className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         ))}
         <button 
           onClick={() => {
-            const name = prompt("Node Identifier:");
-            if (name) setBuildings([...buildings, { 
-              id: Math.random().toString(36).substr(2, 4).toUpperCase(),
-              name,
-              color: 'bg-brand',
-              mapCoords: { top: '50%', left: '50%' },
-              floors: 1,
-              departments: [],
-              facilities: [],
-              image: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=600&h=400&fit=crop'
-            }]);
+            const name = prompt("Enter Building Identity Name:");
+            if (name) {
+              const newB = { id: Math.random().toString(36).substr(2, 2).toUpperCase(), name, color: 'bg-brand', mapCoords: { top: '50%', left: '50%' }, floors: 1, departments: [], image: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=600&h=400&fit=crop' };
+              setBuildings([...buildings, newB]);
+              setEditingId(newB.id);
+            }
           }}
-          className="w-full py-8 border-4 border-dashed border-slate-100 rounded-[3rem] text-slate-300 hover:text-brand hover:border-brand/40 flex flex-col items-center justify-center gap-4 transition-all"
+          className="py-10 border-4 border-dashed border-slate-100 rounded-[3.5rem] text-slate-300 hover:text-brand hover:border-brand/40 flex flex-col items-center justify-center gap-4 transition-all hover:bg-slate-50"
         >
-          <Plus size={32} />
-          <p className="text-[10px] font-black uppercase tracking-widest">Establish Node</p>
+          <PlusCircle size={36} />
+          <p className="text-[11px] font-black uppercase tracking-[0.2em]">Deploy Building Node</p>
         </button>
       </div>
     </div>
   );
 };
 
-// --- Admin Hub Main ---
 const AdminHub = ({ 
   buildings, setBuildings, 
   users, setUsers, 
@@ -253,7 +250,7 @@ const AdminHub = ({
   courses, setCourses,
   events, setEvents
 }: any) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'repository' | 'analytics' | 'os'>('campus');
+  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'analytics' | 'os'>('campus');
   const [selectedUserReport, setSelectedUserReport] = useState<User | null>(null);
   
   const handleToggleSuspend = (userId: string) => {
@@ -261,23 +258,22 @@ const AdminHub = ({
   };
 
   const handleAddUser = () => {
-    const name = prompt("Full Name Identity:");
-    const roleStr = prompt("Protocol Role (student/faculty):");
-    if (!name || !roleStr) return;
-    const role = roleStr.toLowerCase() === 'faculty' ? UserRole.FACULTY : UserRole.STUDENT;
-    const newUser: User = {
-      id: `${role === UserRole.FACULTY ? 'FAC' : 'STU'}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
-      name,
-      email: `${name.toLowerCase().replace(/\s/g, '.')}@unistone.edu`,
-      role,
-      department: "General",
-      attendance: 100,
-      xp: 0,
-      streak: 0,
-      enrolledCourseIds: [],
-      profileImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
-    };
-    setUsers([...users, newUser]);
+    const name = prompt("Personnel Full Name:");
+    const role = prompt("Access Role (student/faculty/admin):") as UserRole;
+    if (name && role) {
+      setUsers([...users, {
+        id: `${role.toUpperCase().substr(0, 3)}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+        name,
+        email: `${name.toLowerCase().replace(/\s/g, '.')}@unistone.edu`,
+        role: role,
+        department: "General Nodes",
+        attendance: 100,
+        xp: 0,
+        streak: 0,
+        enrolledCourseIds: [],
+        profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
+      }]);
+    }
   };
 
   return (
@@ -285,20 +281,19 @@ const AdminHub = ({
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
         <div>
           <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Command <span className="text-brand">Center</span></h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Unified Campus OS Management Suite.</p>
+          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Full Administrative Authority & System Management Protocol.</p>
         </div>
-        <div className="flex bg-white rounded-[2rem] p-2 border border-slate-100 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+        <div className="flex bg-white rounded-[2.5rem] p-2 border border-slate-100 shadow-xl overflow-x-auto no-scrollbar max-w-full">
           {[
-            { id: 'campus', label: 'Mesh', icon: <MapPin size={16}/> },
+            { id: 'campus', label: 'Nodes', icon: <MapPin size={16}/> },
             { id: 'registry', label: 'Registry', icon: <Users size={16}/> },
-            { id: 'repository', label: 'Repository', icon: <FileStack size={16}/> },
-            { id: 'analytics', label: 'Pulse', icon: <BarChart3 size={16}/> },
+            { id: 'analytics', label: 'Reports', icon: <BarChart3 size={16}/> },
             { id: 'os', label: 'OS Settings', icon: <Settings size={16}/> }
           ].map(tab => (
             <button 
               key={tab.id} 
               onClick={() => setActiveAdminTab(tab.id as any)}
-              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0 ${activeAdminTab === tab.id ? 'bg-brand text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
+              className={`px-10 py-5 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0 ${activeAdminTab === tab.id ? 'bg-brand text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
             >
               {tab.icon} {tab.label}
             </button>
@@ -306,265 +301,182 @@ const AdminHub = ({
         </div>
       </header>
 
-      {/* Campus Management Tab */}
       {activeAdminTab === 'campus' && <AdminCampusManager buildings={buildings} setBuildings={setBuildings} />}
 
-      {/* Registry Tab */}
       {activeAdminTab === 'registry' && (
-        <div className="space-y-8">
-          <div className="bg-white rounded-[4rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Global Personnel Registry</h3>
-              <button onClick={handleAddUser} className="px-10 py-5 bg-brand text-white rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-3 shadow-brand hover:scale-105 transition-all">
-                <PlusCircle size={20} /> Deploy New Identity
-              </button>
+        <div className="bg-white rounded-[4rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-12 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
+            <div>
+              <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900">Personnel Mesh</h3>
+              <p className="text-xs font-bold text-slate-400 uppercase mt-2">Manage all active students, faculty, and administrators.</p>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
-                    <th className="px-12 py-8">Identity</th>
-                    <th className="px-12 py-8">Status Pulse</th>
-                    <th className="px-12 py-8">Sync Levels</th>
-                    <th className="px-12 py-8 text-right">Access Protocols</th>
+            <button onClick={handleAddUser} className="px-10 py-5 bg-brand text-white rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-3 shadow-brand hover:scale-105 transition-all">
+              <PlusCircle size={22} /> Register Node
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
+                  <th className="px-12 py-10">Identity Identity</th>
+                  <th className="px-12 py-10">Protocol Role</th>
+                  <th className="px-12 py-10">System Integrity</th>
+                  <th className="px-12 py-10 text-right">Node Controls</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {users.map((u: User) => (
+                  <tr key={u.id} className={`group hover:bg-brand/[0.02] transition-colors ${u.isSuspended ? 'opacity-40 grayscale bg-red-50/20' : ''}`}>
+                    <td className="px-12 py-10">
+                      <div className="flex items-center gap-6">
+                        <img src={u.profileImage} className="w-16 h-16 rounded-[1.8rem] object-cover shadow-lg group-hover:scale-110 transition-transform ring-4 ring-white" />
+                        <div>
+                          <p className="text-lg font-black text-slate-900 uppercase leading-none">{u.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400 mt-2">{u.id} • {u.department}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-12 py-10">
+                      <span className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest ${u.role === UserRole.FACULTY ? 'bg-blue-50 text-blue-600' : (u.role === UserRole.ADMIN ? 'bg-purple-50 text-purple-600' : 'bg-brand/10 text-brand')}`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-12 py-10">
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col"><p className="text-xl font-black text-slate-900 leading-none">{u.attendance}%</p><p className="text-[8px] font-black uppercase text-slate-400 mt-1">Integrity</p></div>
+                        <div className="w-1 h-8 bg-slate-100 rounded-full" />
+                        <div className="flex flex-col"><p className="text-xl font-black text-slate-900 leading-none">{u.xp}</p><p className="text-[8px] font-black uppercase text-slate-400 mt-1">Energy</p></div>
+                      </div>
+                    </td>
+                    <td className="px-12 py-10 text-right space-x-3">
+                       <button 
+                        onClick={() => setSelectedUserReport(u)}
+                        className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-brand hover:text-white transition-all shadow-sm"
+                        title="Pulse Report"
+                      ><Target size={22}/></button>
+                      <button 
+                        onClick={() => handleToggleSuspend(u.id)}
+                        className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-xl shadow-emerald-500/10' : 'bg-red-50 text-red-600 border-red-100 shadow-xl shadow-red-500/10'}`}
+                      >
+                        {u.isSuspended ? 'Reactivate' : 'Suspend'}
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {users.map((u: User) => (
-                    <tr key={u.id} className={`group hover:bg-brand/[0.02] transition-colors ${u.isSuspended ? 'opacity-40 grayscale' : ''}`}>
-                      <td className="px-12 py-8">
-                        <div className="flex items-center gap-6">
-                          <img src={u.profileImage} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-md group-hover:scale-110 transition-transform" />
-                          <div>
-                            <p className="text-lg font-black text-slate-900 uppercase leading-none">{u.name}</p>
-                            <p className="text-[10px] font-bold text-slate-400 mt-2">{u.id} • {u.department}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-12 py-8">
-                        <div className="flex flex-col gap-2">
-                           <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit ${u.role === UserRole.FACULTY ? 'bg-indigo-50 text-indigo-600' : 'bg-brand/10 text-brand'}`}>
-                            {u.role}
-                          </span>
-                          {u.isSuspended && <span className="px-3 py-1 bg-red-50 text-red-600 text-[8px] font-black uppercase rounded-md w-fit">Suspended</span>}
-                        </div>
-                      </td>
-                      <td className="px-12 py-8">
-                        <div className="flex items-center gap-8">
-                          <div><p className="text-xl font-black text-slate-900">{u.attendance}%</p><p className="text-[9px] font-black uppercase text-slate-400">Integrity</p></div>
-                          <div className="w-1 h-8 bg-slate-100 rounded-full" />
-                          <div><p className="text-xl font-black text-slate-900">{u.xp}</p><p className="text-[9px] font-black uppercase text-slate-400">Power Level</p></div>
-                        </div>
-                      </td>
-                      <td className="px-12 py-8 text-right space-x-3">
-                        <button 
-                          onClick={() => setSelectedUserReport(u)}
-                          className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-brand hover:text-white transition-all shadow-sm"
-                          title="Generate Pulse Report"
-                        ><PieChart size={20}/></button>
-                        <button 
-                          onClick={() => handleToggleSuspend(u.id)}
-                          className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 shadow-emerald-100 shadow-xl' : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100 shadow-red-100 shadow-xl'}`}
-                        >
-                          {u.isSuspended ? 'Restore' : 'Suspend'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Repository Management */}
-      {activeAdminTab === 'repository' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
-            <div className="flex justify-between items-center">
-              <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Curriculum Nodes</h3>
-              <button 
-                onClick={() => {
-                  const name = prompt("Course Protocol Name:");
-                  if (name) setCourses([...courses, { id: `c${courses.length + 1}`, name, code: 'NEW101', instructor: 'Assigning...', notesCount: 0, lecturesCount: 0, modules: [], description: 'Awaiting sync.' }]);
-                }}
-                className="p-4 bg-brand text-white rounded-2xl shadow-brand hover:rotate-90 transition-all"
-              ><Plus size={24}/></button>
-            </div>
-            <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-              {courses.map((c: any) => (
-                <div key={c.id} className="p-8 bg-slate-50 rounded-[3rem] border border-slate-100 flex items-center justify-between group">
-                  <div className="flex gap-6 items-center">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center font-black text-2xl text-brand shadow-sm">{c.code[0]}</div>
-                    <div><h4 className="text-lg font-black uppercase truncate max-w-[150px]">{c.name}</h4><p className="text-[9px] font-black uppercase text-slate-400">{c.code} • {c.instructor}</p></div>
-                  </div>
-                  <button onClick={() => setCourses(courses.filter((x: any) => x.id !== c.id))} className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
-            <div className="flex justify-between items-center">
-              <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Event Pulse</h3>
-              <button 
-                onClick={() => {
-                  const title = prompt("Event Title:");
-                  if (title) setEvents([...events, { id: `e${events.length + 1}`, title, date: 'TBD', time: '12:00', location: 'Campus Hub', registeredCount: 0, type: 'workshop', image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=400&fit=crop' }]);
-                }}
-                className="p-4 bg-brand text-white rounded-2xl shadow-brand hover:rotate-90 transition-all"
-              ><Plus size={24}/></button>
-            </div>
-             <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-              {events.map((e: any) => (
-                <div key={e.id} className="p-8 bg-slate-50 rounded-[3rem] border border-slate-100 flex items-center justify-between">
-                  <div className="flex gap-6 items-center">
-                    <img src={e.image} className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
-                    <div><h4 className="text-lg font-black uppercase truncate max-w-[150px]">{e.title}</h4><p className="text-[9px] font-black uppercase text-slate-400">{e.date} • {e.location}</p></div>
-                  </div>
-                  <button onClick={() => setEvents(events.filter((x: any) => x.id !== e.id))} className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Analytics Tab */}
       {activeAdminTab === 'analytics' && (
         <div className="space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { label: 'Total Synchronized', val: users.length, icon: <Users/>, col: 'text-brand bg-brand/10' },
-              { label: 'System Integrity', val: '98.2%', icon: <ShieldAlert/>, col: 'text-indigo-600 bg-indigo-50' },
-              { label: 'Resource Load', val: '42%', icon: <Zap/>, col: 'text-orange-500 bg-orange-50' },
-              { label: 'Active Sessions', val: '1.2k', icon: <Globe2/>, col: 'text-emerald-600 bg-emerald-50' }
-            ].map(card => (
-              <div key={card.label} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-4 group hover:scale-105 transition-all">
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${card.col}`}>{card.icon}</div>
-                <div><p className="text-4xl font-black text-slate-900 leading-none">{card.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">{card.label}</p></div>
+              { label: 'System Load', val: '42%', icon: <Zap/>, col: 'bg-orange-50 text-orange-500' },
+              { label: 'Global Streak', val: '8.4 Days', icon: <Flame/>, col: 'bg-red-50 text-red-500' },
+              { label: 'Integrity Avg', val: '94.1%', icon: <ShieldCheck/>, col: 'bg-emerald-50 text-emerald-500' }
+            ].map(stat => (
+               <div key={stat.label} className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
+                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto ${stat.col}`}>{stat.icon}</div>
+                <div><p className="text-5xl font-black text-slate-900 leading-none">{stat.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">{stat.label}</p></div>
               </div>
             ))}
           </div>
-          <div className="bg-slate-900 p-16 rounded-[5rem] text-white shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-brand/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 flex items-center gap-4"><PieChart className="text-brand"/> Infrastructure Performance Pulse</h3>
+          <div className="bg-slate-900 p-16 rounded-[5rem] text-white">
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 flex items-center gap-4"><BarChart3 className="text-brand"/> Performance Topology</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
-              <div className="space-y-10">
-                {['Computational Units', 'Logistical Mesh', 'Personnel Pulse', 'Curriculum Load'].map((metric, i) => (
-                  <div key={metric} className="space-y-4">
-                    <div className="flex justify-between items-end">
-                      <p className="text-lg font-black uppercase tracking-tight">{metric}</p>
-                      <p className="text-xs font-black text-brand tracking-widest">{85 + i * 3}% OK</p>
+               <div className="space-y-12">
+                  {['Computer Science', 'Engineering', 'Pharmacy', 'Life Sciences'].map((dept, i) => (
+                    <div key={dept} className="space-y-4">
+                      <div className="flex justify-between items-end">
+                        <p className="text-xl font-black uppercase tracking-tight">{dept}</p>
+                        <p className="text-xs font-black text-brand tracking-widest">{82 + (i * 4)}% Sync</p>
+                      </div>
+                      <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10">
+                        <div className="h-full bg-brand" style={{ width: `${82 + (i * 4)}%` }} />
+                      </div>
                     </div>
-                    <div className="h-6 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                      <div className="h-full bg-brand animate-pulse-slow" style={{ width: `${85 + i * 3}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/10 backdrop-blur-md flex flex-col justify-center text-center">
-                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Neural Health Score</p>
-                 <p className="text-8xl font-black text-brand leading-none">A+</p>
-                 <p className="text-sm font-medium italic text-slate-500 mt-6 opacity-60">"The campus mesh is operating at peak efficiency levels."</p>
-              </div>
+                  ))}
+               </div>
+               <div className="bg-white/5 p-12 rounded-[4rem] border border-white/10 flex flex-col justify-center text-center">
+                  <p className="text-[11px] font-black uppercase text-slate-500 tracking-[0.4em] mb-4">Overall Integrity</p>
+                  <p className="text-9xl font-black text-brand leading-none">A+</p>
+                  <p className="text-sm font-medium italic text-slate-400 mt-8 opacity-60">"System pulse is within nominal operational parameters."</p>
+               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* OS Settings Tab */}
       {activeAdminTab === 'os' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="bg-white p-14 rounded-[4rem] border border-slate-100 shadow-sm space-y-12">
-            <h3 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Palette className="text-brand" /> Visual Identity Protocol</h3>
+            <h3 className="text-4xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-4"><Palette className="text-brand"/> UI Architecture Config</h3>
             <div className="space-y-10">
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Primary Brand Core Color</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Master Brand Core Color</label>
                 <div className="flex gap-6 items-center">
-                  <input 
-                    type="color" 
-                    value={primaryColor} 
-                    onChange={e => setPrimaryColor(e.target.value)}
-                    className="w-24 h-24 rounded-3xl cursor-pointer border-8 border-slate-50 overflow-hidden shadow-xl shrink-0" 
-                  />
+                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-24 h-24 rounded-[2rem] cursor-pointer border-8 border-slate-50 shadow-2xl overflow-hidden shrink-0" />
                   <div className="flex-1">
-                    <input 
-                      type="text" 
-                      value={primaryColor} 
-                      onChange={e => setPrimaryColor(e.target.value)}
-                      className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-black uppercase text-sm outline-none focus:border-brand shadow-inner" 
-                    />
-                    <p className="text-[9px] font-bold text-slate-400 mt-2">Enter HEX code or use the pulse picker</p>
+                    <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-black uppercase text-sm outline-none focus:border-brand shadow-inner" />
+                    <p className="text-[9px] font-bold text-slate-400 mt-2">Adjust hex protocol for system-wide synchronization.</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Master Identity Logo Node (URL)</label>
-                <div className="relative">
-                  <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
-                  <input 
-                    type="text" 
-                    value={logo} 
-                    onChange={e => setLogo(e.target.value)}
-                    className="w-full pl-16 pr-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-bold outline-none focus:border-brand shadow-inner" 
-                    placeholder="https://..." 
-                  />
-                </div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Universal Identity Logo (URL)</label>
+                <input type="text" value={logo} onChange={e => setLogo(e.target.value)} className="w-full px-10 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-bold outline-none focus:border-brand shadow-inner" placeholder="https://..." />
               </div>
             </div>
           </div>
-          <div className="bg-brand/5 border-4 border-dashed border-brand/20 p-16 rounded-[5rem] flex flex-col justify-center items-center text-center space-y-10 relative overflow-hidden group">
+          <div className="bg-brand/5 border-4 border-dashed border-brand/20 p-20 rounded-[5rem] flex flex-col items-center justify-center text-center space-y-10 relative overflow-hidden group">
             <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-            <div className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl relative z-10 p-6">
+            <div className="w-36 h-36 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl p-6 relative z-10">
               <img src={logo} className="w-full h-full object-contain" />
             </div>
             <div className="relative z-10">
-              <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Identity Preview</h4>
-              <p className="text-sm font-medium italic text-slate-500 mt-2 opacity-60">Synchronizing system-wide...</p>
+              <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Campus OS Preview</h4>
+              <p className="text-sm font-medium italic text-slate-500 mt-4 opacity-70">"Live interface synchronization active."</p>
             </div>
-            <div className="flex gap-6 justify-center relative z-10">
+            <div className="flex gap-6 relative z-10">
               <div className="w-16 h-16 bg-brand rounded-2xl shadow-brand ring-4 ring-white" />
               <div className="w-16 h-16 bg-brand/50 rounded-2xl ring-4 ring-white" />
               <div className="w-16 h-16 bg-brand/10 rounded-2xl ring-4 ring-white" />
             </div>
-            <button 
-              onClick={() => alert('Interface configurations finalized and synced.')}
-              className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl relative z-10 hover:bg-black transition-all"
-            >Commit Protocols</button>
           </div>
         </div>
       )}
 
-      {/* Detailed User Pulse Report Modal */}
+      {/* Report Modal */}
       {selectedUserReport && (
         <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[5rem] overflow-hidden shadow-5xl border-[15px] border-brand/10 p-16 relative">
             <button onClick={() => setSelectedUserReport(null)} className="absolute top-10 right-10 p-4 bg-slate-50 rounded-full hover:bg-slate-100 transition-all"><X size={24}/></button>
             <div className="flex flex-col md:flex-row gap-12 items-center text-center md:text-left">
-              <img src={selectedUserReport.profileImage} className="w-48 h-48 rounded-[4rem] object-cover shadow-2xl border-8 border-white ring-1 ring-slate-100" />
+              <img src={selectedUserReport.profileImage} className="w-48 h-48 rounded-[3.5rem] object-cover shadow-2xl border-8 border-white ring-1 ring-slate-100" />
               <div className="flex-1 space-y-4">
-                <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-[0.2em]">{selectedUserReport.role} Profile</span>
+                <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-[0.2em]">{selectedUserReport.role} Pulse Report</span>
                 <h3 className="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">{selectedUserReport.name}</h3>
-                <p className="text-xl font-medium italic text-slate-500">{selectedUserReport.department} Department • {selectedUserReport.email}</p>
+                <p className="text-xl font-medium italic text-slate-500">{selectedUserReport.department} • {selectedUserReport.email}</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+            <div className="grid grid-cols-3 gap-8 mt-16">
               {[
-                { label: 'Integrity', val: `${selectedUserReport.attendance}%`, icon: <CheckCircle/>, sub: 'Protocol Adherence' },
-                { label: 'Sync Energy', val: selectedUserReport.xp, icon: <Zap/>, sub: 'Interaction Index' },
-                { label: 'Pulse Streak', val: selectedUserReport.streak, icon: <Flame/>, sub: 'Daily Engagement' }
+                { label: 'Attendance', val: `${selectedUserReport.attendance}%`, icon: <CheckCircle/> },
+                { label: 'Sync XP', val: selectedUserReport.xp, icon: <Zap/> },
+                { label: 'Active Streak', val: selectedUserReport.streak, icon: <Flame/> }
               ].map(stat => (
-                <div key={stat.label} className="bg-slate-50 p-10 rounded-[3rem] text-center space-y-3">
+                <div key={stat.label} className="bg-slate-50 p-10 rounded-[3rem] text-center space-y-2">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto text-brand shadow-sm">{stat.icon}</div>
-                  <div><p className="text-3xl font-black text-slate-900">{stat.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1 tracking-widest">{stat.label}</p></div>
-                  <p className="text-[9px] font-bold text-slate-300 uppercase italic mt-4">{stat.sub}</p>
+                  <p className="text-4xl font-black text-slate-900">{stat.val}</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</p>
                 </div>
               ))}
             </div>
             <div className="mt-12 p-8 bg-brand/5 rounded-[3rem] border border-brand/10">
-              <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-6 flex items-center gap-3"><Target className="text-brand"/> Performance Analysis</h4>
-              <p className="text-sm font-medium leading-relaxed text-slate-600">This node is exhibiting <strong>optimal synchronization behavior</strong>. With a {selectedUserReport.attendance}% integrity score and {selectedUserReport.xp} XP nodes collected, {selectedUserReport.name.split(' ')[0]} is currently ranked in the top 15% of the {selectedUserReport.department} mesh.</p>
+              <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-6 flex items-center gap-3"><Target className="text-brand"/> Behavioral Analysis</h4>
+              <p className="text-sm font-medium leading-relaxed text-slate-600">This node exhibits <strong>high synchronization levels</strong>. With a {selectedUserReport.attendance}% integrity score and {selectedUserReport.xp} XP nodes collected, {selectedUserReport.name.split(' ')[0]} is currently ranked in the top 10% of the active mesh.</p>
             </div>
           </div>
         </div>
@@ -595,7 +507,7 @@ const RealisticMap = ({ buildings }: { buildings: CampusBuilding[] }) => {
     <div className="space-y-12 animate-in fade-in pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-7xl font-black uppercase tracking-tighter leading-none">Campus <span className="text-brand">Mesh</span></h2>
+          <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Campus <span className="text-brand">Mesh</span></h2>
           <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Interactive geographic synchronization of building nodes.</p>
         </div>
       </div>
@@ -881,9 +793,11 @@ export default function App() {
   
   const [activeTab, setActiveTab] = useState('dashboard');
   
+  // Initialize user registry
   useEffect(() => {
     if (users.length === 0) {
       const initialUsers: User[] = [
+        { id: 'ADM-1', name: 'System Admin', email: 'admin@unistone.edu', role: UserRole.ADMIN, department: 'Administration', attendance: 100, xp: 99999, streak: 99, enrolledCourseIds: [] },
         { id: 'FAC-301-A', name: 'Dr. Alan Turing', email: 'turing@unistone.edu', role: UserRole.FACULTY, department: 'CS', attendance: 95, xp: 50000, streak: 30, enrolledCourseIds: [] },
         { id: 'STU-2024-X', name: 'Sarah Connor', email: 'sarah@unistone.edu', role: UserRole.STUDENT, department: 'CS', attendance: 88, xp: 12400, streak: 12, enrolledCourseIds: [] }
       ];
