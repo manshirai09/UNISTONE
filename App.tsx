@@ -428,6 +428,21 @@ const CareerHub = ({ user }: { user: User }) => {
 const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(user.bio || '');
+  const [newSkill, setNewSkill] = useState('');
+
+  const handleAddSkill = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newSkill.trim()) return;
+    
+    const updatedSkills = [...(user.skills || []), newSkill.trim()];
+    setUser({ ...user, skills: updatedSkills });
+    setNewSkill('');
+  };
+
+  const handleSyncProfile = () => {
+    setUser({ ...user, bio });
+    setIsEditing(false);
+  };
 
   return (
     <div className="space-y-12 pb-20 animate-in fade-in">
@@ -457,11 +472,21 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
               {!isEditing ? (
                 <button onClick={() => setIsEditing(true)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 transition-colors"><Edit3 size={18}/></button>
               ) : (
-                <button onClick={() => { setUser({...user, bio}); setIsEditing(false); }} className="px-6 py-2 bg-[#8B0000] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-brand">Sync Profile</button>
+                <button 
+                  onClick={handleSyncProfile} 
+                  className="px-6 py-2 bg-[#8B0000] text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-brand hover:scale-105 transition-all"
+                >
+                  Sync Profile
+                </button>
               )}
             </div>
             {isEditing ? (
-              <textarea value={bio} onChange={e => setBio(e.target.value)} className="w-full h-32 p-6 bg-slate-50 border border-slate-100 rounded-3xl font-medium outline-none focus:border-[#8B0000] transition-colors" />
+              <textarea 
+                value={bio} 
+                onChange={e => setBio(e.target.value)} 
+                className="w-full h-32 p-6 bg-slate-50 border border-slate-100 rounded-3xl font-medium outline-none focus:border-[#8B0000] transition-colors resize-none" 
+                placeholder="Enter your new bio protocol..."
+              />
             ) : (
               <p className="text-xl text-slate-600 font-medium leading-relaxed italic">"{user.bio || 'Node active. Awaiting synchronization.'}"</p>
             )}
@@ -484,9 +509,31 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
           <div className="bg-slate-900 p-12 rounded-[4rem] text-white space-y-8 relative overflow-hidden">
             <h3 className="text-xl font-black uppercase tracking-widest text-[#F0E68C]">Skill Nodes</h3>
             <div className="flex flex-wrap gap-3">
-              {(user.skills || ['Node JS', 'Mesh Architecture']).map(skill => (
+              {(user.skills || []).length > 0 ? user.skills?.map(skill => (
                 <span key={skill} className="px-5 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all cursor-default">{skill}</span>
-              ))}
+              )) : (
+                <p className="text-[10px] uppercase font-black text-slate-500">No skill nodes active.</p>
+              )}
+            </div>
+            
+            {/* Add Skill Input Section */}
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <form onSubmit={handleAddSkill} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newSkill} 
+                  onChange={e => setNewSkill(e.target.value)}
+                  placeholder="New Skill Node..." 
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-[#F0E68C] transition-colors"
+                />
+                <button 
+                  type="submit"
+                  className="p-2 bg-[#F0E68C] text-[#8B0000] rounded-xl hover:scale-110 transition-transform shadow-xl"
+                  title="Establish Skill Link"
+                >
+                  <Plus size={20} />
+                </button>
+              </form>
             </div>
           </div>
           <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-6">
