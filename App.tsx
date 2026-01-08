@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, Search, Play, Heart, Flame, Bot, MapPin, Send, User as UserIcon, Lock, 
@@ -7,7 +6,7 @@ import {
   Clock, ScanFace, CheckCircle, AlertCircle, PlaySquare, Image as ImageIcon, 
   Film, Save, Eye, Github, Linkedin, Network, Building, Zap, ArrowRight,
   TrendingUp, Globe, Smartphone, Laptop, Filter, Check, Camera, Upload,
-  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette
+  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette, Target, BarChart3, Globe2
 } from 'lucide-react';
 import { User, UserRole, Video as VideoType, CampusBuilding, Course, CampusEvent, Job, NewsArticle, Applicant, Lecture, Module } from './types';
 import { NAV_ITEMS, MOCK_BUILDINGS, MOCK_COURSES, MOCK_VIDEOS, MOCK_EVENTS, MOCK_NEWS, MOCK_JOBS } from './constants';
@@ -42,6 +41,7 @@ const ThemeProvider = ({ primaryColor }: { primaryColor: string }) => {
       .border-brand { border-color: var(--brand-primary) !important; }
       .shadow-brand { box-shadow: 0 20px 40px -15px ${primaryColor}4D !important; }
       .active-nav { background-color: var(--brand-primary) !important; }
+      .ring-brand { --tw-ring-color: var(--brand-primary) !important; }
     `;
     const existing = document.getElementById('dynamic-theme');
     if (existing) existing.remove();
@@ -116,216 +116,313 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
   );
 };
 
-// --- Admin Hub ---
+// --- Admin Hub Components ---
+
+const AdminCampusManager = ({ buildings, setBuildings }: any) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleMapClick = (e: React.MouseEvent) => {
+    if (!editingId || !mapContainerRef.current) return;
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    setBuildings(buildings.map((b: any) => 
+      b.id === editingId ? { ...b, mapCoords: { top: `${y.toFixed(1)}%`, left: `${x.toFixed(1)}%` } } : b
+    ));
+  };
+
+  const selectedBuilding = buildings.find((b: any) => b.id === editingId);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="lg:col-span-8 space-y-8">
+        <div className="bg-white p-8 rounded-[4rem] border border-slate-100 shadow-sm">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Live Node Mesh</h3>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Click on map to position selected building</p>
+          </div>
+          <div 
+            ref={mapContainerRef}
+            onClick={handleMapClick}
+            className="h-[500px] bg-slate-50 rounded-[3rem] border border-slate-100 relative overflow-hidden cursor-crosshair"
+          >
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 40 L40 0 M0 0 L40 40' stroke='%23000' fill='none' stroke-width='0.5'/%3E%3C/svg%3E")` }} />
+            {buildings.map((b: any) => (
+              <div 
+                key={b.id} 
+                className={`absolute w-12 h-12 rounded-2xl flex items-center justify-center text-white border-4 border-white shadow-xl transition-all -translate-x-1/2 -translate-y-1/2 ${editingId === b.id ? 'scale-125 z-50 ring-4 ring-brand animate-pulse' : 'z-10'} ${b.color}`}
+                style={{ top: b.mapCoords.top, left: b.mapCoords.left }}
+                onClick={(e) => { e.stopPropagation(); setEditingId(b.id); }}
+              >
+                <Building size={20} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="lg:col-span-4 space-y-8 h-[600px] overflow-y-auto custom-scrollbar pr-2">
+        {buildings.map((b: any) => (
+          <div 
+            key={b.id} 
+            onClick={() => setEditingId(b.id)}
+            className={`bg-white p-8 rounded-[3rem] border transition-all cursor-pointer group ${editingId === b.id ? 'border-brand shadow-brand ring-1 ring-brand' : 'border-slate-100 hover:border-slate-200 shadow-sm'}`}
+          >
+            <div className="flex gap-6 items-center">
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white shrink-0 ${b.color}`}><Building size={28} /></div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-lg font-black uppercase truncate">{b.name}</h4>
+                <div className="flex gap-4 mt-1">
+                  <span className="text-[9px] font-black uppercase text-slate-400">T: {b.mapCoords.top}</span>
+                  <span className="text-[9px] font-black uppercase text-slate-400">L: {b.mapCoords.left}</span>
+                </div>
+              </div>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setBuildings(buildings.filter((x: any) => x.id !== b.id)); }}
+                className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+            {editingId === b.id && (
+              <div className="mt-8 pt-8 border-t border-slate-50 space-y-4 animate-in slide-in-from-top-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black uppercase text-slate-400">Building Image</label>
+                  <input 
+                    type="text" 
+                    value={b.image} 
+                    onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, image: e.target.value } : x))}
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-slate-400">Floors</label>
+                    <input 
+                      type="number" 
+                      value={b.floors} 
+                      onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, floors: parseInt(e.target.value) } : x))}
+                      className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black uppercase text-slate-400">Theme Class</label>
+                    <input 
+                      type="text" 
+                      value={b.color} 
+                      onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, color: e.target.value } : x))}
+                      className="w-full px-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-brand"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        <button 
+          onClick={() => {
+            const name = prompt("Node Identifier:");
+            if (name) setBuildings([...buildings, { 
+              id: Math.random().toString(36).substr(2, 4).toUpperCase(),
+              name,
+              color: 'bg-brand',
+              mapCoords: { top: '50%', left: '50%' },
+              floors: 1,
+              departments: [],
+              facilities: [],
+              image: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=600&h=400&fit=crop'
+            }]);
+          }}
+          className="w-full py-8 border-4 border-dashed border-slate-100 rounded-[3rem] text-slate-300 hover:text-brand hover:border-brand/40 flex flex-col items-center justify-center gap-4 transition-all"
+        >
+          <Plus size={32} />
+          <p className="text-[10px] font-black uppercase tracking-widest">Establish Node</p>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// --- Admin Hub Main ---
 const AdminHub = ({ 
   buildings, setBuildings, 
   users, setUsers, 
   logo, setLogo, 
-  primaryColor, setPrimaryColor 
+  primaryColor, setPrimaryColor,
+  courses, setCourses,
+  events, setEvents
 }: any) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'analytics' | 'os'>('campus');
+  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'repository' | 'analytics' | 'os'>('campus');
+  const [selectedUserReport, setSelectedUserReport] = useState<User | null>(null);
   
-  const handleAddBuilding = () => {
-    const name = prompt("Enter Building Name:");
-    if (!name) return;
-    const newB: CampusBuilding = {
-      id: Math.random().toString(36).substr(2, 4).toUpperCase(),
-      name,
-      description: "New active node establishment.",
-      color: "bg-indigo-500",
-      image: "https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=600&h=400&fit=crop",
-      floors: 3,
-      departments: ["General"],
-      facilities: ["WIFI"],
-      mapCoords: { top: "50%", left: "50%" }
-    };
-    setBuildings([...buildings, newB]);
-  };
-
   const handleToggleSuspend = (userId: string) => {
     setUsers(users.map((u: User) => u.id === userId ? { ...u, isSuspended: !u.isSuspended } : u));
   };
 
   const handleAddUser = () => {
-    const name = prompt("Name:");
-    const roleStr = prompt("Role (student/faculty):");
+    const name = prompt("Full Name Identity:");
+    const roleStr = prompt("Protocol Role (student/faculty):");
     if (!name || !roleStr) return;
     const role = roleStr.toLowerCase() === 'faculty' ? UserRole.FACULTY : UserRole.STUDENT;
     const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+      id: `${role === UserRole.FACULTY ? 'FAC' : 'STU'}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`,
       name,
-      email: `${name.toLowerCase().replace(' ', '.')}@unistone.edu`,
+      email: `${name.toLowerCase().replace(/\s/g, '.')}@unistone.edu`,
       role,
-      department: "CS",
+      department: "General",
       attendance: 100,
       xp: 0,
       streak: 0,
       enrolledCourseIds: [],
-      profileImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop"
+      profileImage: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop"
     };
     setUsers([...users, newUser]);
   };
 
   return (
     <div className="space-y-12 animate-in fade-in pb-20">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
         <div>
           <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Command <span className="text-brand">Center</span></h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed">Full system governance enabled.</p>
+          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Unified Campus OS Management Suite.</p>
         </div>
-        <div className="flex bg-white rounded-3xl p-2 border border-slate-100 shadow-sm">
-          {['campus', 'registry', 'analytics', 'os'].map(tab => (
+        <div className="flex bg-white rounded-[2rem] p-2 border border-slate-100 shadow-sm overflow-x-auto no-scrollbar max-w-full">
+          {[
+            { id: 'campus', label: 'Mesh', icon: <MapPin size={16}/> },
+            { id: 'registry', label: 'Registry', icon: <Users size={16}/> },
+            { id: 'repository', label: 'Repository', icon: <FileStack size={16}/> },
+            { id: 'analytics', label: 'Pulse', icon: <BarChart3 size={16}/> },
+            { id: 'os', label: 'OS Settings', icon: <Settings size={16}/> }
+          ].map(tab => (
             <button 
-              key={tab} 
-              onClick={() => setActiveAdminTab(tab as any)}
-              className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeAdminTab === tab ? 'bg-brand text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
+              key={tab.id} 
+              onClick={() => setActiveAdminTab(tab.id as any)}
+              className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0 ${activeAdminTab === tab.id ? 'bg-brand text-white shadow-brand' : 'text-slate-400 hover:bg-slate-50'}`}
             >
-              {tab}
+              {tab.icon} {tab.label}
             </button>
           ))}
         </div>
       </header>
 
-      {activeAdminTab === 'campus' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {buildings.map((b: CampusBuilding) => (
-            <div key={b.id} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-6 group">
-              <div className="h-48 rounded-[2.5rem] overflow-hidden relative">
-                <img src={b.image} className="w-full h-full object-cover" />
-                <button 
-                  onClick={() => {
-                    const url = prompt("New Image URL:", b.image);
-                    if (url) setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, image: url } : x));
-                  }}
-                  className="absolute bottom-4 right-4 p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Camera size={18} />
-                </button>
-              </div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{b.name}</h4>
-                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Floors: {b.floors} • ID: {b.id}</p>
-                </div>
-                <button 
-                  onClick={() => setBuildings(buildings.filter((x: any) => x.id !== b.id))}
-                  className="p-3 text-red-400 hover:bg-red-50 rounded-2xl transition-colors"
-                >
-                  <Trash2 size={20} />
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                <input 
-                  type="text" 
-                  value={b.mapCoords.top} 
-                  onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, mapCoords: { ...x.mapCoords, top: e.target.value } } : x))}
-                  className="px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold border border-transparent focus:border-brand" 
-                  placeholder="Top %"
-                />
-                <input 
-                  type="text" 
-                  value={b.mapCoords.left} 
-                  onChange={(e) => setBuildings(buildings.map((x: any) => x.id === b.id ? { ...x, mapCoords: { ...x.mapCoords, left: e.target.value } } : x))}
-                  className="px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold border border-transparent focus:border-brand" 
-                  placeholder="Left %"
-                />
-              </div>
-            </div>
-          ))}
-          <button 
-            onClick={handleAddBuilding}
-            className="border-4 border-dashed border-slate-100 rounded-[4rem] flex flex-col items-center justify-center p-12 text-slate-300 hover:text-brand hover:border-brand/40 transition-all gap-4"
-          >
-            <div className="p-6 bg-slate-50 rounded-full"><Plus size={40} /></div>
-            <p className="text-[12px] font-black uppercase tracking-[0.2em]">Deploy Node</p>
-          </button>
-        </div>
-      )}
+      {/* Campus Management Tab */}
+      {activeAdminTab === 'campus' && <AdminCampusManager buildings={buildings} setBuildings={setBuildings} />}
 
+      {/* Registry Tab */}
       {activeAdminTab === 'registry' && (
-        <div className="bg-white rounded-[4rem] border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-10 border-b border-slate-50 flex justify-between items-center">
-            <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">User Repository</h3>
-            <button onClick={handleAddUser} className="px-8 py-4 bg-brand text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-3 shadow-brand">
-              <PlusCircle size={18} /> Establish New Link
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
-                  <th className="px-10 py-6">Identity</th>
-                  <th className="px-10 py-6">Role</th>
-                  <th className="px-10 py-6">Department</th>
-                  <th className="px-10 py-6">Pulse (Attendance/XP)</th>
-                  <th className="px-10 py-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {users.map((u: User) => (
-                  <tr key={u.id} className={`group hover:bg-slate-50/50 transition-colors ${u.isSuspended ? 'opacity-50 grayscale' : ''}`}>
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-4">
-                        <img src={u.profileImage} className="w-12 h-12 rounded-2xl object-cover shadow-sm" />
-                        <div>
-                          <p className="text-sm font-black text-slate-900 uppercase">{u.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{u.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6">
-                      <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${u.role === UserRole.FACULTY ? 'bg-indigo-50 text-indigo-600' : 'bg-brand/10 text-brand'}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-10 py-6">
-                      <p className="text-xs font-bold text-slate-500 uppercase">{u.department}</p>
-                    </td>
-                    <td className="px-10 py-6">
-                      <div className="flex items-center gap-6">
-                        <div><p className="text-sm font-black text-slate-900">{u.attendance}%</p><p className="text-[9px] font-black uppercase text-slate-400">Integrity</p></div>
-                        <div><p className="text-sm font-black text-slate-900">{u.xp}</p><p className="text-[9px] font-black uppercase text-slate-400">XP</p></div>
-                      </div>
-                    </td>
-                    <td className="px-10 py-6 text-right">
-                      <button 
-                        onClick={() => handleToggleSuspend(u.id)}
-                        className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100' : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'}`}
-                      >
-                        {u.isSuspended ? 'Resume Node' : 'Suspend Node'}
-                      </button>
-                    </td>
+        <div className="space-y-8">
+          <div className="bg-white rounded-[4rem] border border-slate-100 shadow-sm overflow-hidden">
+            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+              <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Global Personnel Registry</h3>
+              <button onClick={handleAddUser} className="px-10 py-5 bg-brand text-white rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-3 shadow-brand hover:scale-105 transition-all">
+                <PlusCircle size={20} /> Deploy New Identity
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
+                    <th className="px-12 py-8">Identity</th>
+                    <th className="px-12 py-8">Status Pulse</th>
+                    <th className="px-12 py-8">Sync Levels</th>
+                    <th className="px-12 py-8 text-right">Access Protocols</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {users.map((u: User) => (
+                    <tr key={u.id} className={`group hover:bg-brand/[0.02] transition-colors ${u.isSuspended ? 'opacity-40 grayscale' : ''}`}>
+                      <td className="px-12 py-8">
+                        <div className="flex items-center gap-6">
+                          <img src={u.profileImage} className="w-16 h-16 rounded-[1.5rem] object-cover shadow-md group-hover:scale-110 transition-transform" />
+                          <div>
+                            <p className="text-lg font-black text-slate-900 uppercase leading-none">{u.name}</p>
+                            <p className="text-[10px] font-bold text-slate-400 mt-2">{u.id} • {u.department}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-12 py-8">
+                        <div className="flex flex-col gap-2">
+                           <span className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest w-fit ${u.role === UserRole.FACULTY ? 'bg-indigo-50 text-indigo-600' : 'bg-brand/10 text-brand'}`}>
+                            {u.role}
+                          </span>
+                          {u.isSuspended && <span className="px-3 py-1 bg-red-50 text-red-600 text-[8px] font-black uppercase rounded-md w-fit">Suspended</span>}
+                        </div>
+                      </td>
+                      <td className="px-12 py-8">
+                        <div className="flex items-center gap-8">
+                          <div><p className="text-xl font-black text-slate-900">{u.attendance}%</p><p className="text-[9px] font-black uppercase text-slate-400">Integrity</p></div>
+                          <div className="w-1 h-8 bg-slate-100 rounded-full" />
+                          <div><p className="text-xl font-black text-slate-900">{u.xp}</p><p className="text-[9px] font-black uppercase text-slate-400">Power Level</p></div>
+                        </div>
+                      </td>
+                      <td className="px-12 py-8 text-right space-x-3">
+                        <button 
+                          onClick={() => setSelectedUserReport(u)}
+                          className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-brand hover:text-white transition-all shadow-sm"
+                          title="Generate Pulse Report"
+                        ><PieChart size={20}/></button>
+                        <button 
+                          onClick={() => handleToggleSuspend(u.id)}
+                          className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100 shadow-emerald-100 shadow-xl' : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100 shadow-red-100 shadow-xl'}`}
+                        >
+                          {u.isSuspended ? 'Restore' : 'Suspend'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
 
-      {activeAdminTab === 'analytics' && (
-        <div className="space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
-              <div className="w-20 h-20 bg-brand/10 text-brand rounded-[2rem] flex items-center justify-center mx-auto"><Users size={32} /></div>
-              <div><p className="text-4xl font-black text-slate-900">{users.length}</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Active Nodes</p></div>
+      {/* Repository Management */}
+      {activeAdminTab === 'repository' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
+            <div className="flex justify-between items-center">
+              <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Curriculum Nodes</h3>
+              <button 
+                onClick={() => {
+                  const name = prompt("Course Protocol Name:");
+                  if (name) setCourses([...courses, { id: `c${courses.length + 1}`, name, code: 'NEW101', instructor: 'Assigning...', notesCount: 0, lecturesCount: 0, modules: [], description: 'Awaiting sync.' }]);
+                }}
+                className="p-4 bg-brand text-white rounded-2xl shadow-brand hover:rotate-90 transition-all"
+              ><Plus size={24}/></button>
             </div>
-            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
-              <div className="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-[2rem] flex items-center justify-center mx-auto"><PieChart size={32} /></div>
-              <div><p className="text-4xl font-black text-slate-900">84%</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Avg Pulse Rate</p></div>
-            </div>
-            <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
-              <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto"><CheckCircle size={32} /></div>
-              <div><p className="text-4xl font-black text-slate-900">22</p><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Sync Reports OK</p></div>
+            <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+              {courses.map((c: any) => (
+                <div key={c.id} className="p-8 bg-slate-50 rounded-[3rem] border border-slate-100 flex items-center justify-between group">
+                  <div className="flex gap-6 items-center">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center font-black text-2xl text-brand shadow-sm">{c.code[0]}</div>
+                    <div><h4 className="text-lg font-black uppercase truncate max-w-[150px]">{c.name}</h4><p className="text-[9px] font-black uppercase text-slate-400">{c.code} • {c.instructor}</p></div>
+                  </div>
+                  <button onClick={() => setCourses(courses.filter((x: any) => x.id !== c.id))} className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="bg-slate-900 p-16 rounded-[5rem] text-white">
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12">Performance Topology</h3>
-            <div className="space-y-10">
-              {['Computer Science', 'Pharmacy', 'Engineering'].map((dept, i) => (
-                <div key={dept} className="space-y-4">
-                  <div className="flex justify-between items-end"><p className="text-lg font-black uppercase tracking-tight">{dept}</p><p className="text-xs font-black text-brand">{80 + (i * 5)}% Sync</p></div>
-                  <div className="h-6 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-brand" style={{ width: `${80 + (i * 5)}%` }} /></div>
+          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
+            <div className="flex justify-between items-center">
+              <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900">Event Pulse</h3>
+              <button 
+                onClick={() => {
+                  const title = prompt("Event Title:");
+                  if (title) setEvents([...events, { id: `e${events.length + 1}`, title, date: 'TBD', time: '12:00', location: 'Campus Hub', registeredCount: 0, type: 'workshop', image: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=400&fit=crop' }]);
+                }}
+                className="p-4 bg-brand text-white rounded-2xl shadow-brand hover:rotate-90 transition-all"
+              ><Plus size={24}/></button>
+            </div>
+             <div className="space-y-6 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+              {events.map((e: any) => (
+                <div key={e.id} className="p-8 bg-slate-50 rounded-[3rem] border border-slate-100 flex items-center justify-between">
+                  <div className="flex gap-6 items-center">
+                    <img src={e.image} className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
+                    <div><h4 className="text-lg font-black uppercase truncate max-w-[150px]">{e.title}</h4><p className="text-[9px] font-black uppercase text-slate-400">{e.date} • {e.location}</p></div>
+                  </div>
+                  <button onClick={() => setEvents(events.filter((x: any) => x.id !== e.id))} className="p-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"><Trash2 size={18}/></button>
                 </div>
               ))}
             </div>
@@ -333,49 +430,141 @@ const AdminHub = ({
         </div>
       )}
 
+      {/* Analytics Tab */}
+      {activeAdminTab === 'analytics' && (
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {[
+              { label: 'Total Synchronized', val: users.length, icon: <Users/>, col: 'text-brand bg-brand/10' },
+              { label: 'System Integrity', val: '98.2%', icon: <ShieldAlert/>, col: 'text-indigo-600 bg-indigo-50' },
+              { label: 'Resource Load', val: '42%', icon: <Zap/>, col: 'text-orange-500 bg-orange-50' },
+              { label: 'Active Sessions', val: '1.2k', icon: <Globe2/>, col: 'text-emerald-600 bg-emerald-50' }
+            ].map(card => (
+              <div key={card.label} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm space-y-4 group hover:scale-105 transition-all">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${card.col}`}>{card.icon}</div>
+                <div><p className="text-4xl font-black text-slate-900 leading-none">{card.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">{card.label}</p></div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-slate-900 p-16 rounded-[5rem] text-white shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-brand/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
+            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 flex items-center gap-4"><PieChart className="text-brand"/> Infrastructure Performance Pulse</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
+              <div className="space-y-10">
+                {['Computational Units', 'Logistical Mesh', 'Personnel Pulse', 'Curriculum Load'].map((metric, i) => (
+                  <div key={metric} className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <p className="text-lg font-black uppercase tracking-tight">{metric}</p>
+                      <p className="text-xs font-black text-brand tracking-widest">{85 + i * 3}% OK</p>
+                    </div>
+                    <div className="h-6 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                      <div className="h-full bg-brand animate-pulse-slow" style={{ width: `${85 + i * 3}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="bg-white/5 p-10 rounded-[3rem] border border-white/10 backdrop-blur-md flex flex-col justify-center text-center">
+                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em] mb-4">Neural Health Score</p>
+                 <p className="text-8xl font-black text-brand leading-none">A+</p>
+                 <p className="text-sm font-medium italic text-slate-500 mt-6 opacity-60">"The campus mesh is operating at peak efficiency levels."</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* OS Settings Tab */}
       {activeAdminTab === 'os' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          <div className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm space-y-10">
-            <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Palette className="text-brand" /> Interface Config</h3>
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Primary Brand Node</label>
-                <div className="flex gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="bg-white p-14 rounded-[4rem] border border-slate-100 shadow-sm space-y-12">
+            <h3 className="text-4xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Palette className="text-brand" /> Visual Identity Protocol</h3>
+            <div className="space-y-10">
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Primary Brand Core Color</label>
+                <div className="flex gap-6 items-center">
                   <input 
                     type="color" 
                     value={primaryColor} 
                     onChange={e => setPrimaryColor(e.target.value)}
-                    className="w-20 h-20 rounded-2xl cursor-pointer border-4 border-slate-50 overflow-hidden" 
+                    className="w-24 h-24 rounded-3xl cursor-pointer border-8 border-slate-50 overflow-hidden shadow-xl shrink-0" 
                   />
+                  <div className="flex-1">
+                    <input 
+                      type="text" 
+                      value={primaryColor} 
+                      onChange={e => setPrimaryColor(e.target.value)}
+                      className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-black uppercase text-sm outline-none focus:border-brand shadow-inner" 
+                    />
+                    <p className="text-[9px] font-bold text-slate-400 mt-2">Enter HEX code or use the pulse picker</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Master Identity Logo Node (URL)</label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
                   <input 
                     type="text" 
-                    value={primaryColor} 
-                    onChange={e => setPrimaryColor(e.target.value)}
-                    className="flex-1 px-6 bg-slate-50 border border-slate-100 rounded-2xl font-black uppercase text-sm outline-none focus:border-brand" 
+                    value={logo} 
+                    onChange={e => setLogo(e.target.value)}
+                    className="w-full pl-16 pr-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-bold outline-none focus:border-brand shadow-inner" 
+                    placeholder="https://..." 
                   />
                 </div>
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">System Logo Protocol (URL)</label>
-                <input 
-                  type="text" 
-                  value={logo} 
-                  onChange={e => setLogo(e.target.value)}
-                  className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl font-bold outline-none focus:border-brand" 
-                  placeholder="https://..." 
-                />
-              </div>
             </div>
           </div>
-          <div className="bg-brand/5 border-2 border-dashed border-brand/20 p-12 rounded-[4rem] flex flex-col justify-center text-center space-y-6">
-            <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mx-auto shadow-xl">
-              <img src={logo} className="w-full h-full object-contain p-3" />
+          <div className="bg-brand/5 border-4 border-dashed border-brand/20 p-16 rounded-[5rem] flex flex-col justify-center items-center text-center space-y-10 relative overflow-hidden group">
+            <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="w-32 h-32 bg-white rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl relative z-10 p-6">
+              <img src={logo} className="w-full h-full object-contain" />
             </div>
-            <h4 className="text-2xl font-black text-slate-900 uppercase">Real-time Preview</h4>
-            <div className="flex gap-4 justify-center">
-              <div className="w-12 h-12 bg-brand rounded-xl shadow-brand" />
-              <div className="w-12 h-12 bg-brand/50 rounded-xl" />
-              <div className="w-12 h-12 bg-brand/10 rounded-xl" />
+            <div className="relative z-10">
+              <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Identity Preview</h4>
+              <p className="text-sm font-medium italic text-slate-500 mt-2 opacity-60">Synchronizing system-wide...</p>
+            </div>
+            <div className="flex gap-6 justify-center relative z-10">
+              <div className="w-16 h-16 bg-brand rounded-2xl shadow-brand ring-4 ring-white" />
+              <div className="w-16 h-16 bg-brand/50 rounded-2xl ring-4 ring-white" />
+              <div className="w-16 h-16 bg-brand/10 rounded-2xl ring-4 ring-white" />
+            </div>
+            <button 
+              onClick={() => alert('Interface configurations finalized and synced.')}
+              className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl relative z-10 hover:bg-black transition-all"
+            >Commit Protocols</button>
+          </div>
+        </div>
+      )}
+
+      {/* Detailed User Pulse Report Modal */}
+      {selectedUserReport && (
+        <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in">
+          <div className="bg-white w-full max-w-4xl rounded-[5rem] overflow-hidden shadow-5xl border-[15px] border-brand/10 p-16 relative">
+            <button onClick={() => setSelectedUserReport(null)} className="absolute top-10 right-10 p-4 bg-slate-50 rounded-full hover:bg-slate-100 transition-all"><X size={24}/></button>
+            <div className="flex flex-col md:flex-row gap-12 items-center text-center md:text-left">
+              <img src={selectedUserReport.profileImage} className="w-48 h-48 rounded-[4rem] object-cover shadow-2xl border-8 border-white ring-1 ring-slate-100" />
+              <div className="flex-1 space-y-4">
+                <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-[0.2em]">{selectedUserReport.role} Profile</span>
+                <h3 className="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">{selectedUserReport.name}</h3>
+                <p className="text-xl font-medium italic text-slate-500">{selectedUserReport.department} Department • {selectedUserReport.email}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+              {[
+                { label: 'Integrity', val: `${selectedUserReport.attendance}%`, icon: <CheckCircle/>, sub: 'Protocol Adherence' },
+                { label: 'Sync Energy', val: selectedUserReport.xp, icon: <Zap/>, sub: 'Interaction Index' },
+                { label: 'Pulse Streak', val: selectedUserReport.streak, icon: <Flame/>, sub: 'Daily Engagement' }
+              ].map(stat => (
+                <div key={stat.label} className="bg-slate-50 p-10 rounded-[3rem] text-center space-y-3">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto text-brand shadow-sm">{stat.icon}</div>
+                  <div><p className="text-3xl font-black text-slate-900">{stat.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1 tracking-widest">{stat.label}</p></div>
+                  <p className="text-[9px] font-bold text-slate-300 uppercase italic mt-4">{stat.sub}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-12 p-8 bg-brand/5 rounded-[3rem] border border-brand/10">
+              <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-6 flex items-center gap-3"><Target className="text-brand"/> Performance Analysis</h4>
+              <p className="text-sm font-medium leading-relaxed text-slate-600">This node is exhibiting <strong>optimal synchronization behavior</strong>. With a {selectedUserReport.attendance}% integrity score and {selectedUserReport.xp} XP nodes collected, {selectedUserReport.name.split(' ')[0]} is currently ranked in the top 15% of the {selectedUserReport.department} mesh.</p>
             </div>
           </div>
         </div>
@@ -688,11 +877,10 @@ export default function App() {
   const [buildings, setBuildings] = useSyncedState<CampusBuilding[]>('unistone-campus-nodes', MOCK_BUILDINGS);
   const [users, setUsers] = useSyncedState<User[]>('unistone-user-registry', []);
   const [courses, setCourses] = useSyncedState<Course[]>('unistone-courses-dynamic', MOCK_COURSES);
+  const [events, setEvents] = useSyncedState<CampusEvent[]>('unistone-events-dynamic', MOCK_EVENTS);
   
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Initialize user registry if empty
-  // Fix typos in property names (enrolleCourseIds -> enrolledCourseIds)
   useEffect(() => {
     if (users.length === 0) {
       const initialUsers: User[] = [
@@ -706,7 +894,7 @@ export default function App() {
   useEffect(() => { 
     if (user) {
       localStorage.setItem('unistone-user', JSON.stringify(user));
-      if (user.role === UserRole.ADMIN) setActiveTab('admin');
+      if (user.role === UserRole.ADMIN && activeTab === 'dashboard') setActiveTab('admin');
     } else {
       localStorage.removeItem('unistone-user');
     }
@@ -726,7 +914,16 @@ export default function App() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'admin': return <AdminHub buildings={buildings} setBuildings={setBuildings} users={users} setUsers={setUsers} logo={logo} setLogo={setLogo} primaryColor={primaryColor} setPrimaryColor={setPrimaryColor} />;
+      case 'admin': return (
+        <AdminHub 
+          buildings={buildings} setBuildings={setBuildings} 
+          users={users} setUsers={setUsers} 
+          logo={logo} setLogo={setLogo} 
+          primaryColor={primaryColor} setPrimaryColor={setPrimaryColor}
+          courses={courses} setCourses={setCourses}
+          events={events} setEvents={setEvents}
+        />
+      );
       case 'dashboard': return (
         <div className="space-y-16 pb-20 animate-in fade-in">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -739,29 +936,38 @@ export default function App() {
               <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm text-center"><p className="text-3xl font-black text-brand">{user.attendance}%</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1">Integrity</p></div>
             </div>
           </header>
-          {/* Dashboard Body */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-            <div className="bg-slate-900 p-14 rounded-[5rem] text-white space-y-8">
-              <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4"><TrendingUp className="text-[#F0E68C]" /> Neural Pulse</h3>
-              <div className="space-y-6">
-                {MOCK_NEWS.slice(0, 2).map(n => (
-                  <div key={n.id} className="flex gap-6 group cursor-pointer">
-                    <img src={n.image} className="w-24 h-24 rounded-2xl object-cover" />
-                    <div><h4 className="font-black uppercase text-sm line-clamp-2">{n.title}</h4><p className="text-[9px] font-black text-slate-400 mt-2">{n.source}</p></div>
+            <div className="bg-slate-900 p-14 rounded-[5rem] text-white space-y-8 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-brand/10 transition-colors" />
+              <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 relative z-10"><TrendingUp className="text-[#F0E68C]" /> Neural Pulse</h3>
+              <div className="space-y-6 relative z-10">
+                {MOCK_NEWS.slice(0, 3).map(n => (
+                  <div key={n.id} className="flex gap-6 group/item cursor-pointer">
+                    <img src={n.image} className="w-24 h-24 rounded-2xl object-cover shrink-0" />
+                    <div className="flex flex-col justify-center">
+                      <h4 className="font-black uppercase text-sm line-clamp-2 group-hover/item:text-brand transition-colors">{n.title}</h4>
+                      <p className="text-[9px] font-black text-slate-400 mt-2">{n.source} • {n.readTime}</p>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-white p-14 rounded-[5rem] border border-slate-100 shadow-sm">
+            <div className="bg-white p-14 rounded-[5rem] border border-slate-100 shadow-sm space-y-8">
                <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 text-slate-900"><Calendar className="text-brand" /> Hub Events</h3>
-               <div className="space-y-6 mt-6">
-                 {MOCK_EVENTS.map(e => (
-                   <div key={e.id} className="flex items-center justify-between">
-                     <div className="flex gap-4">
-                       <div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex flex-col items-center justify-center font-black text-[10px]"><span>OCT</span><span>24</span></div>
-                       <div><p className="font-black uppercase text-sm">{e.title}</p><p className="text-[9px] font-bold text-slate-400">{e.location}</p></div>
+               <div className="space-y-8 mt-6">
+                 {events.slice(0, 4).map(e => (
+                   <div key={e.id} className="flex items-center justify-between group cursor-pointer">
+                     <div className="flex gap-6 items-center">
+                       <div className="w-16 h-16 bg-brand/10 text-brand rounded-2xl flex flex-col items-center justify-center font-black">
+                         <span className="text-[9px] uppercase leading-none">{e.date.split(' ')[0]}</span>
+                         <span className="text-xl leading-none mt-1">{e.date.split(' ')[1]}</span>
+                       </div>
+                       <div>
+                        <p className="font-black uppercase text-lg text-slate-900 group-hover:text-brand transition-colors leading-tight">{e.title}</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{e.location} • {e.time}</p>
+                       </div>
                      </div>
-                     <ChevronRight className="text-slate-200" />
+                     <ChevronRight className="text-slate-200 group-hover:text-brand group-hover:translate-x-1 transition-all" />
                    </div>
                  ))}
                </div>
@@ -776,10 +982,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen gradient-bg">
+    <div className="min-h-screen gradient-bg overflow-hidden flex">
       <ThemeProvider primaryColor={primaryColor} />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={() => setUser(null)} logo={logo} />
-      <main className="md:ml-72 p-6 md:p-14 h-screen overflow-y-auto custom-scrollbar no-scrollbar scroll-smooth">
+      <main className="flex-1 p-6 md:p-14 h-screen overflow-y-auto custom-scrollbar no-scrollbar scroll-smooth">
         {renderContent()}
       </main>
       <UnistoneAI />
