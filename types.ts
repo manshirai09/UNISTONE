@@ -11,6 +11,14 @@ export interface Project {
   link: string;
 }
 
+export interface Applicant {
+  studentId: string;
+  studentName: string;
+  studentImage?: string;
+  appliedDate: string;
+  status: 'pending' | 'shortlisted' | 'rejected';
+}
+
 export interface User {
   id: string;
   name: string;
@@ -99,7 +107,7 @@ export interface Job {
   salary?: string;
   tags: string[];
   niche: string;
-  status?: 'applied' | 'pending' | 'none';
+  applicants: Applicant[];
 }
 
 export interface NewsArticle {
@@ -109,4 +117,6 @@ export interface NewsArticle {
   category: string;
   url: string;
   image: string;
+  content?: string;
+  readTime: string;
 }

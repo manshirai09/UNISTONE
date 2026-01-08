@@ -15,10 +15,11 @@ export const NAV_ITEMS = [
 ];
 
 export const MOCK_NEWS: NewsArticle[] = [
-  { id: 'n1', title: 'The Future of Generative AI in Engineering', source: 'TechCrunch', category: 'Engineering', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop', url: '#' },
-  { id: 'n2', title: 'Quantum Computing Nodes Establish Record Sync', source: 'Wired', category: 'CS', image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=250&fit=crop', url: '#' },
-  { id: 'n3', title: 'New Biotech Mesh Speeds Up Drug Formulation', source: 'Nature', category: 'Pharmacy', image: 'https://images.unsplash.com/photo-1532187875605-7fe35803efbe?w=400&h=250&fit=crop', url: '#' },
-  { id: 'n4', title: 'Autonomous Campus Shuttles: A Pilot Program', source: 'The Verge', category: 'General', image: 'https://images.unsplash.com/photo-1519067758434-d13d7edd4a4a?w=400&h=250&fit=crop', url: '#' },
+  // Fix: Added missing readTime property
+  { id: 'n1', title: 'The Future of Generative AI in Engineering', source: 'TechCrunch', category: 'Engineering', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop', url: '#', readTime: '5 min' },
+  { id: 'n2', title: 'Quantum Computing Nodes Establish Record Sync', source: 'Wired', category: 'CS', image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=250&fit=crop', url: '#', readTime: '4 min' },
+  { id: 'n3', title: 'New Biotech Mesh Speeds Up Drug Formulation', source: 'Nature', category: 'Pharmacy', image: 'https://images.unsplash.com/photo-1532187875605-7fe35803efbe?w=400&h=250&fit=crop', url: '#', readTime: '3 min' },
+  { id: 'n4', title: 'Autonomous Campus Shuttles: A Pilot Program', source: 'The Verge', category: 'General', image: 'https://images.unsplash.com/photo-1519067758434-d13d7edd4a4a?w=400&h=250&fit=crop', url: '#', readTime: '6 min' },
 ];
 
 export const MOCK_BUILDINGS: CampusBuilding[] = [
@@ -58,6 +59,7 @@ export const MOCK_EVENTS: CampusEvent[] = [
 ];
 
 export const MOCK_JOBS: Job[] = [
-  { id: 'j1', title: 'Node Architect Intern', company: 'Google', type: 'internship', location: 'Remote', salary: '60k/mo', tags: ['React', 'Sync'], niche: 'Engineering', status: 'none' },
-  { id: 'j2', title: 'ML Mesh Engineer', company: 'NVIDIA', type: 'full-time', location: 'Indore Hub', salary: '18 LPA', tags: ['Python', 'CUDA'], niche: 'CS', status: 'applied' }
+  // Fix: Removed invalid status property and added required applicants array
+  { id: 'j1', title: 'Node Architect Intern', company: 'Google', type: 'internship', location: 'Remote', salary: '60k/mo', tags: ['React', 'Sync'], niche: 'Engineering', applicants: [] },
+  { id: 'j2', title: 'ML Mesh Engineer', company: 'NVIDIA', type: 'full-time', location: 'Indore Hub', salary: '18 LPA', tags: ['Python', 'CUDA'], niche: 'CS', applicants: [] }
 ];
