@@ -18,7 +18,7 @@ export interface User {
   role: UserRole;
   enrollmentNo?: string;
   department: string;
-  year?: string;
+  attendance: number;
   xp: number;
   streak: number;
   bio?: string;
@@ -26,7 +26,27 @@ export interface User {
   projects?: Project[];
   githubUrl?: string;
   linkedinUrl?: string;
-  resumeUrl?: string;
+  profileImage?: string;
+  coverImage?: string;
+}
+
+export interface Lecture {
+  id: string;
+  title: string;
+  duration: string;
+  status: 'completed' | 'pending';
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  code: string;
+  instructor: string;
+  instructorImage?: string;
+  notesCount: number;
+  lecturesCount: number;
+  lectures: Lecture[];
+  description: string;
 }
 
 export interface Video {
@@ -37,25 +57,13 @@ export interface Video {
   subject: string;
   department: string;
   uploadedBy: string;
+  uploaderRole: UserRole;
+  uploaderImage?: string;
   videoUrl: string;
   thumbnailUrl: string;
-  duration: number;
   likes: number;
   views: number;
   createdAt: string;
-}
-
-export interface MapCoords {
-  top: string;
-  left: string;
-}
-
-export interface Authority {
-  name: string;
-  title: string;
-  phone: string;
-  email: string;
-  room: string;
 }
 
 export interface CampusBuilding {
@@ -67,17 +75,7 @@ export interface CampusBuilding {
   floors: number;
   departments: string[];
   facilities: string[];
-  authorities: Authority[];
-  mapCoords: MapCoords;
-}
-
-export interface Course {
-  id: string;
-  name: string;
-  code: string;
-  instructor: string;
-  notesCount: number;
-  lecturesCount: number;
+  mapCoords: { top: string; left: string };
 }
 
 export interface CampusEvent {
@@ -87,11 +85,8 @@ export interface CampusEvent {
   date: string;
   time: string;
   location: string;
-  department: string;
-  eligibility: 'Open to All' | 'CS Students Only' | 'Faculty Only' | 'Final Year Only';
-  flyerUrl: string;
+  image: string;
   registeredCount: number;
-  isPopular?: boolean;
   type: 'hackathon' | 'workshop' | 'competition' | 'cultural';
 }
 
@@ -101,25 +96,17 @@ export interface Job {
   company: string;
   type: 'full-time' | 'internship';
   location: string;
-  link: string;
   salary?: string;
   tags: string[];
+  niche: string;
+  status?: 'applied' | 'pending' | 'none';
 }
 
-export interface CommunityPost {
+export interface NewsArticle {
   id: string;
-  author: string;
-  role: string;
-  content: string;
-  likes: number;
-  comments: number;
-  time: string;
-}
-
-export interface ScheduleItem {
-  day: string;
-  time: string;
-  subject: string;
-  room: string;
-  type: 'Lecture' | 'Lab' | 'Tutorial';
+  title: string;
+  source: string;
+  category: string;
+  url: string;
+  image: string;
 }
