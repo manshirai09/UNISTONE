@@ -6,20 +6,34 @@ import {
   Clock, ScanFace, CheckCircle, AlertCircle, PlaySquare, Image as ImageIcon, 
   Film, Save, Eye, Github, Linkedin, Network, Building, Zap, ArrowRight,
   TrendingUp, Globe, Smartphone, Laptop, Filter, Check, Camera, Upload,
-  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette, Target, BarChart3, Globe2, ShieldCheck, UserCheck
+  ExternalLink, ChevronRight, Book, Award, MoreVertical, FileUp, FileStack, Link as LinkIcon, FolderPlus, PlusCircle, ShieldAlert, Settings, PieChart, Trash2, Sliders, Palette, Target, BarChart3, Globe2, ShieldCheck, UserCheck, Activity, RefreshCw, Radio, Database
 } from 'lucide-react';
 import { User, UserRole, Video as VideoType, CampusBuilding, Course, CampusEvent, Job, NewsArticle, Applicant, Lecture, Module } from './types';
 import { NAV_ITEMS, MOCK_BUILDINGS, MOCK_COURSES, MOCK_VIDEOS, MOCK_EVENTS, MOCK_NEWS, MOCK_JOBS } from './constants';
 import { askUnistoneAI } from './services/gemini';
 
-// --- Global State Persistence ---
-const useSyncedState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+// --- Global Sync Pulse Tracker ---
+// Simulates a backend synchronization pulse
+type SyncStatus = 'synced' | 'syncing' | 'failed' | 'conflict';
+
+// --- Global State Persistence with Sync Metadata ---
+const useSyncedState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>, SyncStatus] => {
   const [state, setState] = useState<T>(() => {
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : defaultValue;
   });
-  useEffect(() => { localStorage.setItem(key, JSON.stringify(state)); }, [key, state]);
-  return [state, setState];
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
+
+  useEffect(() => {
+    setSyncStatus('syncing');
+    const timer = setTimeout(() => {
+      localStorage.setItem(key, JSON.stringify(state));
+      setSyncStatus('synced');
+    }, 400); // Simulate network latency for sync
+    return () => clearTimeout(timer);
+  }, [key, state]);
+
+  return [state, setState, syncStatus];
 };
 
 // --- Dynamic Theme Injector ---
@@ -42,6 +56,22 @@ const ThemeProvider = ({ primaryColor }: { primaryColor: string }) => {
       .shadow-brand { box-shadow: 0 20px 40px -15px ${primaryColor}4D !important; }
       .active-nav { background-color: var(--brand-primary) !important; }
       .ring-brand { --tw-ring-color: var(--brand-primary) !important; }
+      
+      @keyframes pulse-ring {
+        0% { transform: scale(0.33); opacity: 0.8; }
+        80%, 100% { opacity: 0; }
+      }
+      .sync-pulse {
+        position: relative;
+      }
+      .sync-pulse::before {
+        content: '';
+        position: absolute;
+        left: -8px; top: -8px; right: -8px; bottom: -8px;
+        border: 2px solid var(--brand-primary);
+        border-radius: 50%;
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+      }
     `;
     const existing = document.getElementById('dynamic-theme');
     if (existing) existing.remove();
@@ -83,7 +113,6 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gradient-bg">
       <div className="w-full max-w-5xl bg-white rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-white">
-        {/* Left Branding Panel */}
         <div className="md:w-5/12 p-16 text-white academic-gradient flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
           <div className="relative z-10">
@@ -95,17 +124,16 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
           </div>
           <div className="relative z-10 space-y-4">
             <div className="p-6 bg-white/10 rounded-[2rem] backdrop-blur-md border border-white/20 text-[11px] font-black uppercase tracking-widest flex items-center gap-4">
-              <ShieldCheck className="text-[#F0E68C]" /> Verified Security Node
+              <ShieldCheck className="text-[#F0E68C]" /> Secured Sync Protocol
             </div>
-            <p className="text-[10px] uppercase font-bold opacity-60 tracking-[0.2em]">Build 2.5.1-Release</p>
+            <p className="text-[10px] uppercase font-bold opacity-60 tracking-[0.2em]">Build 2.6.0-Reactive</p>
           </div>
         </div>
 
-        {/* Right Login Panel */}
         <div className="md:w-7/12 p-16 bg-white flex flex-col justify-center">
           <div className="mb-12">
-            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase leading-tight">Identity <span className="text-brand">Verification</span></h2>
-            <p className="text-slate-400 font-medium">Select your role to establish identity link.</p>
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight mb-4 uppercase leading-tight">Identity <span className="text-brand">Gateway</span></h2>
+            <p className="text-slate-400 font-medium">Link your module profile to the central mesh.</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3 mb-10">
@@ -124,11 +152,11 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="relative group">
               <Mail className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-brand transition-colors" size={20} />
-              <input name="email" type="email" required placeholder="University ID / Email" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
+              <input name="email" type="email" required placeholder="University Identity" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
             </div>
             <div className="relative group">
               <Lock className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-brand transition-colors" size={20} />
-              <input name="password" type="password" required placeholder="Access Protocol" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
+              <input name="password" type="password" required placeholder="Pass Protocol" className="w-full pl-16 pr-8 py-5 bg-slate-50 border border-slate-100 rounded-3xl outline-none focus:border-brand focus:ring-4 ring-brand/5 transition-all font-bold" />
             </div>
             
             <button disabled={loading} className="w-full py-6 bg-brand text-white font-black rounded-3xl shadow-brand uppercase text-xs tracking-widest hover:scale-[1.02] active:scale-95 transition-all">
@@ -137,7 +165,7 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
           </form>
 
           <div className="mt-12 pt-8 border-t border-slate-50 text-center">
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4">Direct Admin Access</p>
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-4">Authority Hub Shortcut</p>
             <button 
               onClick={() => {
                 setSelectedRole(UserRole.ADMIN);
@@ -147,7 +175,7 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
               }} 
               className="px-8 py-3 bg-slate-50 text-slate-900 border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-brand hover:text-white transition-all inline-flex items-center gap-2"
             >
-              Admin Hub Shortcut <ArrowRight size={14}/>
+              Direct Admin Hub Access <ArrowRight size={14}/>
             </button>
           </div>
         </div>
@@ -156,7 +184,48 @@ const AuthView = ({ onLogin, logo }: { onLogin: (user: User) => void; logo: stri
   );
 };
 
+// --- Module Sync Monitor ---
+const SyncMonitor = ({ statuses }: { statuses: Record<string, SyncStatus> }) => {
+  const allSynced = Object.values(statuses).every(s => s === 'synced');
+  const syncing = Object.values(statuses).some(s => s === 'syncing');
+
+  return (
+    <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-2xl border border-slate-100 shadow-sm animate-in fade-in">
+      <div className={`w-3 h-3 rounded-full ${syncing ? 'bg-brand animate-pulse' : (allSynced ? 'bg-emerald-500' : 'bg-red-500')}`} />
+      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        {syncing ? 'Mesh Synchronizing...' : (allSynced ? 'Mesh Pulse Optimal' : 'Sync Latency Detected')}
+      </span>
+      {syncing && <RefreshCw size={14} className="animate-spin text-brand" />}
+    </div>
+  );
+};
+
 // --- Admin Components ---
+const AdminSyncDashboard = ({ statuses }: { statuses: Record<string, SyncStatus> }) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {Object.entries(statuses).map(([module, status]) => (
+        <div key={module} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm space-y-4">
+          <div className="flex justify-between items-start">
+            <div className={`p-4 rounded-2xl ${status === 'synced' ? 'bg-emerald-50 text-emerald-500' : 'bg-brand/10 text-brand'}`}>
+              <Database size={20} />
+            </div>
+            <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase ${status === 'synced' ? 'bg-emerald-50 text-emerald-600' : 'bg-brand/10 text-brand animate-pulse'}`}>
+              {status}
+            </div>
+          </div>
+          <div>
+            <h4 className="text-lg font-black uppercase text-slate-900">{module}</h4>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Cross-Module Repository</p>
+          </div>
+          <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
+            <div className={`h-full transition-all duration-1000 ${status === 'synced' ? 'w-full bg-emerald-500' : 'w-1/2 bg-brand animate-pulse'}`} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 const AdminCampusManager = ({ buildings, setBuildings }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -176,8 +245,8 @@ const AdminCampusManager = ({ buildings, setBuildings }: any) => {
   return (
     <div className="space-y-12">
       <div className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm relative">
-        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 mb-8 flex items-center gap-4"><MapPin className="text-brand"/> Live Node Mesh Editor</h3>
-        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6">Select a building below, then click on the map to place its coordinate node.</p>
+        <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900 mb-8 flex items-center gap-4"><MapPin className="text-brand"/> Mesh Topography Editor</h3>
+        <p className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-6">Reactive positioning updates reflect instantly across student and faculty navigation modules.</p>
         <div 
           ref={mapContainerRef}
           onClick={handleMapClick}
@@ -192,9 +261,6 @@ const AdminCampusManager = ({ buildings, setBuildings }: any) => {
               onClick={(e) => { e.stopPropagation(); setEditingId(b.id); }}
             >
               <Building size={24} />
-              {editingId === b.id && (
-                <div className="absolute top-16 bg-brand text-white text-[8px] font-black uppercase px-3 py-1 rounded-full whitespace-nowrap shadow-brand">Active Placement</div>
-              )}
             </div>
           ))}
         </div>
@@ -247,10 +313,9 @@ const AdminHub = ({
   users, setUsers, 
   logo, setLogo, 
   primaryColor, setPrimaryColor,
-  courses, setCourses,
-  events, setEvents
+  syncStatuses
 }: any) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'analytics' | 'os'>('campus');
+  const [activeAdminTab, setActiveAdminTab] = useState<'campus' | 'registry' | 'pulse' | 'os'>('campus');
   const [selectedUserReport, setSelectedUserReport] = useState<User | null>(null);
   
   const handleToggleSuspend = (userId: string) => {
@@ -281,14 +346,14 @@ const AdminHub = ({
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
         <div>
           <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Command <span className="text-brand">Center</span></h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Full Administrative Authority & System Management Protocol.</p>
+          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Master authority node for module synchronization and system governance.</p>
         </div>
         <div className="flex bg-white rounded-[2.5rem] p-2 border border-slate-100 shadow-xl overflow-x-auto no-scrollbar max-w-full">
           {[
             { id: 'campus', label: 'Nodes', icon: <MapPin size={16}/> },
             { id: 'registry', label: 'Registry', icon: <Users size={16}/> },
-            { id: 'analytics', label: 'Reports', icon: <BarChart3 size={16}/> },
-            { id: 'os', label: 'OS Settings', icon: <Settings size={16}/> }
+            { id: 'pulse', label: 'Mesh Pulse', icon: <Activity size={16}/> },
+            { id: 'os', label: 'OS Config', icon: <Settings size={16}/> }
           ].map(tab => (
             <button 
               key={tab.id} 
@@ -308,7 +373,7 @@ const AdminHub = ({
           <div className="p-12 border-b border-slate-50 flex justify-between items-center bg-slate-50/20">
             <div>
               <h3 className="text-3xl font-black uppercase tracking-tight text-slate-900">Personnel Mesh</h3>
-              <p className="text-xs font-bold text-slate-400 uppercase mt-2">Manage all active students, faculty, and administrators.</p>
+              <p className="text-xs font-bold text-slate-400 uppercase mt-2">Manage all active students, faculty, and administrators across synchronized modules.</p>
             </div>
             <button onClick={handleAddUser} className="px-10 py-5 bg-brand text-white rounded-2xl font-black uppercase text-[11px] tracking-widest flex items-center gap-3 shadow-brand hover:scale-105 transition-all">
               <PlusCircle size={22} /> Register Node
@@ -318,10 +383,10 @@ const AdminHub = ({
             <table className="w-full text-left">
               <thead>
                 <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50/50">
-                  <th className="px-12 py-10">Identity Identity</th>
-                  <th className="px-12 py-10">Protocol Role</th>
-                  <th className="px-12 py-10">System Integrity</th>
-                  <th className="px-12 py-10 text-right">Node Controls</th>
+                  <th className="px-12 py-10">Identity Node</th>
+                  <th className="px-12 py-10">Access Role</th>
+                  <th className="px-12 py-10">Sync Integrtiy</th>
+                  <th className="px-12 py-10 text-right">Mesh Control</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -343,22 +408,20 @@ const AdminHub = ({
                     </td>
                     <td className="px-12 py-10">
                       <div className="flex items-center gap-4">
-                        <div className="flex flex-col"><p className="text-xl font-black text-slate-900 leading-none">{u.attendance}%</p><p className="text-[8px] font-black uppercase text-slate-400 mt-1">Integrity</p></div>
-                        <div className="w-1 h-8 bg-slate-100 rounded-full" />
-                        <div className="flex flex-col"><p className="text-xl font-black text-slate-900 leading-none">{u.xp}</p><p className="text-[8px] font-black uppercase text-slate-400 mt-1">Energy</p></div>
+                        <p className="text-xl font-black text-slate-900 leading-none">{u.attendance}%</p>
+                        <div className={`w-2 h-2 rounded-full ${u.attendance > 80 ? 'bg-emerald-500' : 'bg-brand animate-pulse'}`} />
                       </div>
                     </td>
                     <td className="px-12 py-10 text-right space-x-3">
                        <button 
                         onClick={() => setSelectedUserReport(u)}
                         className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-brand hover:text-white transition-all shadow-sm"
-                        title="Pulse Report"
                       ><Target size={22}/></button>
                       <button 
                         onClick={() => handleToggleSuspend(u.id)}
                         className={`px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all ${u.isSuspended ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-xl shadow-emerald-500/10' : 'bg-red-50 text-red-600 border-red-100 shadow-xl shadow-red-500/10'}`}
                       >
-                        {u.isSuspended ? 'Reactivate' : 'Suspend'}
+                        {u.isSuspended ? 'Enable' : 'Suspend'}
                       </button>
                     </td>
                   </tr>
@@ -369,42 +432,38 @@ const AdminHub = ({
         </div>
       )}
 
-      {activeAdminTab === 'analytics' && (
+      {activeAdminTab === 'pulse' && (
         <div className="space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { label: 'System Load', val: '42%', icon: <Zap/>, col: 'bg-orange-50 text-orange-500' },
-              { label: 'Global Streak', val: '8.4 Days', icon: <Flame/>, col: 'bg-red-50 text-red-500' },
-              { label: 'Integrity Avg', val: '94.1%', icon: <ShieldCheck/>, col: 'bg-emerald-50 text-emerald-500' }
-            ].map(stat => (
-               <div key={stat.label} className="bg-white p-12 rounded-[4rem] border border-slate-100 shadow-sm text-center space-y-4">
-                <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto ${stat.col}`}>{stat.icon}</div>
-                <div><p className="text-5xl font-black text-slate-900 leading-none">{stat.val}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-2 tracking-widest">{stat.label}</p></div>
-              </div>
-            ))}
-          </div>
-          <div className="bg-slate-900 p-16 rounded-[5rem] text-white">
-            <h3 className="text-3xl font-black uppercase tracking-tighter mb-12 flex items-center gap-4"><BarChart3 className="text-brand"/> Performance Topology</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
-               <div className="space-y-12">
-                  {['Computer Science', 'Engineering', 'Pharmacy', 'Life Sciences'].map((dept, i) => (
-                    <div key={dept} className="space-y-4">
-                      <div className="flex justify-between items-end">
-                        <p className="text-xl font-black uppercase tracking-tight">{dept}</p>
-                        <p className="text-xs font-black text-brand tracking-widest">{82 + (i * 4)}% Sync</p>
+          <div className="bg-slate-900 p-16 rounded-[5rem] text-white shadow-2xl relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-96 h-96 bg-brand/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+             <div className="relative z-10 space-y-12">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4"><Radio className="text-brand animate-pulse"/> Global Mesh Pulse Monitor</h3>
+                  <div className="flex gap-4">
+                    <div className="px-6 py-3 bg-white/10 rounded-2xl border border-white/10 text-[10px] font-black uppercase tracking-widest">Latency: 42ms</div>
+                    <div className="px-6 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">Bandwidth: 1.2 GB/s</div>
+                  </div>
+                </div>
+                <AdminSyncDashboard statuses={syncStatuses} />
+                <div className="bg-white/5 p-12 rounded-[4rem] border border-white/10">
+                   <h4 className="text-xl font-black uppercase tracking-tight mb-8">Synchronized Module Integrity</h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      <div className="space-y-8">
+                        {['ERP Protocol', 'LMS Mesh', 'Career Gateway', 'Collaborative Hub'].map((mod, i) => (
+                           <div key={mod} className="space-y-3">
+                              <div className="flex justify-between items-end"><p className="text-[11px] font-black uppercase tracking-widest text-slate-400">{mod}</p><p className="text-xs font-black text-emerald-400">SYNC OK</p></div>
+                              <div className="h-2 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-emerald-500" style={{ width: `${95 + i}%` }} /></div>
+                           </div>
+                        ))}
                       </div>
-                      <div className="h-4 bg-white/5 rounded-full overflow-hidden border border-white/10">
-                        <div className="h-full bg-brand" style={{ width: `${82 + (i * 4)}%` }} />
+                      <div className="flex flex-col justify-center items-center text-center p-10 bg-white/5 rounded-[3rem] border border-white/5">
+                         <Activity size={80} className="text-brand mb-6 animate-pulse" />
+                         <p className="text-5xl font-black">99.98%</p>
+                         <p className="text-[10px] font-black uppercase text-slate-500 mt-2 tracking-widest">Uptime Probability</p>
                       </div>
-                    </div>
-                  ))}
-               </div>
-               <div className="bg-white/5 p-12 rounded-[4rem] border border-white/10 flex flex-col justify-center text-center">
-                  <p className="text-[11px] font-black uppercase text-slate-500 tracking-[0.4em] mb-4">Overall Integrity</p>
-                  <p className="text-9xl font-black text-brand leading-none">A+</p>
-                  <p className="text-sm font-medium italic text-slate-400 mt-8 opacity-60">"System pulse is within nominal operational parameters."</p>
-               </div>
-            </div>
+                   </div>
+                </div>
+             </div>
           </div>
         </div>
       )}
@@ -412,32 +471,30 @@ const AdminHub = ({
       {activeAdminTab === 'os' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
           <div className="bg-white p-14 rounded-[4rem] border border-slate-100 shadow-sm space-y-12">
-            <h3 className="text-4xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-4"><Palette className="text-brand"/> UI Architecture Config</h3>
+            <h3 className="text-4xl font-black uppercase tracking-tighter text-slate-900 flex items-center gap-4"><Palette className="text-brand"/> OS Interface Protocol</h3>
             <div className="space-y-10">
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Master Brand Core Color</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Synchronized Brand HEX</label>
                 <div className="flex gap-6 items-center">
                   <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-24 h-24 rounded-[2rem] cursor-pointer border-8 border-slate-50 shadow-2xl overflow-hidden shrink-0" />
                   <div className="flex-1">
                     <input type="text" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-black uppercase text-sm outline-none focus:border-brand shadow-inner" />
-                    <p className="text-[9px] font-bold text-slate-400 mt-2">Adjust hex protocol for system-wide synchronization.</p>
                   </div>
                 </div>
               </div>
               <div className="space-y-4">
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Universal Identity Logo (URL)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Central Identity Logo URL</label>
                 <input type="text" value={logo} onChange={e => setLogo(e.target.value)} className="w-full px-10 py-6 bg-slate-50 border border-slate-100 rounded-[2rem] font-bold outline-none focus:border-brand shadow-inner" placeholder="https://..." />
               </div>
             </div>
           </div>
-          <div className="bg-brand/5 border-4 border-dashed border-brand/20 p-20 rounded-[5rem] flex flex-col items-center justify-center text-center space-y-10 relative overflow-hidden group">
-            <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="bg-brand/5 border-4 border-dashed border-brand/20 p-20 rounded-[5rem] flex flex-col items-center justify-center text-center space-y-10 group relative">
             <div className="w-36 h-36 bg-white rounded-[2.5rem] flex items-center justify-center shadow-2xl p-6 relative z-10">
               <img src={logo} className="w-full h-full object-contain" />
             </div>
             <div className="relative z-10">
-              <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Campus OS Preview</h4>
-              <p className="text-sm font-medium italic text-slate-500 mt-4 opacity-70">"Live interface synchronization active."</p>
+              <h4 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Identity Preview</h4>
+              <p className="text-sm font-medium italic text-slate-500 mt-4 opacity-70">Synchronizing system identity across all terminal nodes.</p>
             </div>
             <div className="flex gap-6 relative z-10">
               <div className="w-16 h-16 bg-brand rounded-2xl shadow-brand ring-4 ring-white" />
@@ -448,7 +505,6 @@ const AdminHub = ({
         </div>
       )}
 
-      {/* Report Modal */}
       {selectedUserReport && (
         <div className="fixed inset-0 z-[5000] bg-black/60 backdrop-blur-xl flex items-center justify-center p-8 animate-in fade-in">
           <div className="bg-white w-full max-w-4xl rounded-[5rem] overflow-hidden shadow-5xl border-[15px] border-brand/10 p-16 relative">
@@ -456,16 +512,16 @@ const AdminHub = ({
             <div className="flex flex-col md:flex-row gap-12 items-center text-center md:text-left">
               <img src={selectedUserReport.profileImage} className="w-48 h-48 rounded-[3.5rem] object-cover shadow-2xl border-8 border-white ring-1 ring-slate-100" />
               <div className="flex-1 space-y-4">
-                <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-[0.2em]">{selectedUserReport.role} Pulse Report</span>
+                <span className="px-5 py-2 bg-brand text-white text-[10px] font-black uppercase rounded-xl tracking-[0.2em]">{selectedUserReport.role} Mesh Identity</span>
                 <h3 className="text-6xl font-black text-slate-900 uppercase tracking-tighter leading-none">{selectedUserReport.name}</h3>
                 <p className="text-xl font-medium italic text-slate-500">{selectedUserReport.department} • {selectedUserReport.email}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-8 mt-16">
               {[
-                { label: 'Attendance', val: `${selectedUserReport.attendance}%`, icon: <CheckCircle/> },
-                { label: 'Sync XP', val: selectedUserReport.xp, icon: <Zap/> },
-                { label: 'Active Streak', val: selectedUserReport.streak, icon: <Flame/> }
+                { label: 'Integrity', val: `${selectedUserReport.attendance}%`, icon: <CheckCircle/> },
+                { label: 'Sync Energy', val: selectedUserReport.xp, icon: <Zap/> },
+                { label: 'Node Streak', val: selectedUserReport.streak, icon: <Flame/> }
               ].map(stat => (
                 <div key={stat.label} className="bg-slate-50 p-10 rounded-[3rem] text-center space-y-2">
                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mx-auto text-brand shadow-sm">{stat.icon}</div>
@@ -473,10 +529,6 @@ const AdminHub = ({
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</p>
                 </div>
               ))}
-            </div>
-            <div className="mt-12 p-8 bg-brand/5 rounded-[3rem] border border-brand/10">
-              <h4 className="text-lg font-black uppercase tracking-tight text-slate-900 mb-6 flex items-center gap-3"><Target className="text-brand"/> Behavioral Analysis</h4>
-              <p className="text-sm font-medium leading-relaxed text-slate-600">This node exhibits <strong>high synchronization levels</strong>. With a {selectedUserReport.attendance}% integrity score and {selectedUserReport.xp} XP nodes collected, {selectedUserReport.name.split(' ')[0]} is currently ranked in the top 10% of the active mesh.</p>
             </div>
           </div>
         </div>
@@ -508,7 +560,7 @@ const RealisticMap = ({ buildings }: { buildings: CampusBuilding[] }) => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">Campus <span className="text-brand">Mesh</span></h2>
-          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Interactive geographic synchronization of building nodes.</p>
+          <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Synchronized geographic topology of campus nodes.</p>
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-12 h-[70vh]">
@@ -612,24 +664,6 @@ const ProfileHub = ({ user, setUser }: { user: User, setUser: (u: User) => void 
                 <div><p className="text-2xl font-black text-slate-900">{stat.value}</p><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</p></div>
               </div>
             ))}
-          </div>
-        </div>
-        <div className="space-y-12">
-          <div className="bg-slate-900 p-12 rounded-[4rem] text-white space-y-8 relative overflow-hidden">
-            <h3 className="text-xl font-black uppercase tracking-widest text-[#F0E68C]">Skill Nodes</h3>
-            <div className="flex flex-wrap gap-3">
-              {(user.skills || []).length > 0 ? user.skills?.map(skill => (
-                <span key={skill} className="px-5 py-3 bg-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all cursor-default">{skill}</span>
-              )) : (
-                <p className="text-[10px] uppercase font-black text-slate-500">No skill nodes active.</p>
-              )}
-            </div>
-            <div className="mt-8 pt-8 border-t border-white/10">
-              <form onSubmit={handleAddSkill} className="flex gap-2">
-                <input type="text" value={newSkill} onChange={e => setNewSkill(e.target.value)} placeholder="New Skill Node..." className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold outline-none focus:border-[#F0E68C] transition-colors" />
-                <button type="submit" className="p-2 bg-[#F0E68C] text-[#8B0000] rounded-xl hover:scale-110 transition-transform shadow-xl"><Plus size={20} /></button>
-              </form>
-            </div>
           </div>
         </div>
       </div>
@@ -784,16 +818,23 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
   
-  const [logo, setLogo] = useSyncedState('unistone-logo', 'https://colleges18.s3.ap-south-1.amazonaws.com/Sage_univ_indore_b02eee0e17.jpg');
-  const [primaryColor, setPrimaryColor] = useSyncedState('unistone-brand-color', '#8B0000');
-  const [buildings, setBuildings] = useSyncedState<CampusBuilding[]>('unistone-campus-nodes', MOCK_BUILDINGS);
-  const [users, setUsers] = useSyncedState<User[]>('unistone-user-registry', []);
-  const [courses, setCourses] = useSyncedState<Course[]>('unistone-courses-dynamic', MOCK_COURSES);
-  const [events, setEvents] = useSyncedState<CampusEvent[]>('unistone-events-dynamic', MOCK_EVENTS);
+  const [logo, setLogo, logoSync] = useSyncedState('unistone-logo', 'https://colleges18.s3.ap-south-1.amazonaws.com/Sage_univ_indore_b02eee0e17.jpg');
+  const [primaryColor, setPrimaryColor, colorSync] = useSyncedState('unistone-brand-color', '#8B0000');
+  const [buildings, setBuildings, campusSync] = useSyncedState<CampusBuilding[]>('unistone-campus-nodes', MOCK_BUILDINGS);
+  const [users, setUsers, registrySync] = useSyncedState<User[]>('unistone-user-registry', []);
+  const [courses, setCourses, courseSync] = useSyncedState<Course[]>('unistone-courses-dynamic', MOCK_COURSES);
+  const [events, setEvents, eventSync] = useSyncedState<CampusEvent[]>('unistone-events-dynamic', MOCK_EVENTS);
   
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Initialize user registry
+  const syncStatuses: Record<string, SyncStatus> = {
+    Campus: campusSync,
+    Personnel: registrySync,
+    Curriculum: courseSync,
+    Timeline: eventSync,
+    OS: colorSync
+  };
+
   useEffect(() => {
     if (users.length === 0) {
       const initialUsers: User[] = [
@@ -820,7 +861,7 @@ export default function App() {
       <div className="max-w-xl text-center space-y-8 animate-in zoom-in-95">
         <ShieldAlert size={100} className="mx-auto text-[#F0E68C] animate-pulse" />
         <h2 className="text-6xl font-black uppercase tracking-tighter">Node Suspended</h2>
-        <p className="text-xl font-medium italic opacity-80">Your synchronization privileges have been revoked by the core authority. Please contact the Command Center for reactivation.</p>
+        <p className="text-xl font-medium italic opacity-80">Your synchronization privileges have been revoked by the core authority.</p>
         <button onClick={() => setUser(null)} className="px-12 py-5 bg-white text-brand rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-110 transition-all">Disconnect</button>
       </div>
     </div>
@@ -834,16 +875,18 @@ export default function App() {
           users={users} setUsers={setUsers} 
           logo={logo} setLogo={setLogo} 
           primaryColor={primaryColor} setPrimaryColor={setPrimaryColor}
-          courses={courses} setCourses={setCourses}
-          events={events} setEvents={setEvents}
+          syncStatuses={syncStatuses}
         />
       );
       case 'dashboard': return (
         <div className="space-y-16 pb-20 animate-in fade-in">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-            <div>
+            <div className="space-y-4">
               <h2 className="text-7xl font-black uppercase tracking-tighter leading-none text-slate-900">System <span className="text-brand">Feed</span></h2>
-              <p className="text-slate-500 font-medium italic mt-5 text-xl tracking-tight leading-relaxed max-w-xl">Identity synchronized as <span className="text-brand font-black">{user.role.toUpperCase()}</span>.</p>
+              <div className="flex gap-4">
+                 <SyncMonitor statuses={syncStatuses} />
+                 <p className="text-slate-500 font-medium italic text-sm tracking-tight leading-relaxed">Identity synchronized as <span className="text-brand font-black">{user.role.toUpperCase()}</span>.</p>
+              </div>
             </div>
             <div className="flex gap-4">
               <div className="p-8 bg-white rounded-[3rem] border border-slate-100 shadow-sm text-center"><p className="text-3xl font-black text-slate-900">{user.streak}</p><p className="text-[10px] font-black uppercase text-slate-400 mt-1">Streak</p></div>
@@ -852,7 +895,7 @@ export default function App() {
           </header>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div className="bg-slate-900 p-14 rounded-[5rem] text-white space-y-8 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:bg-brand/10 transition-colors" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-brand/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
               <h3 className="text-3xl font-black uppercase tracking-tighter flex items-center gap-4 relative z-10"><TrendingUp className="text-[#F0E68C]" /> Neural Pulse</h3>
               <div className="space-y-6 relative z-10">
                 {MOCK_NEWS.slice(0, 3).map(n => (
