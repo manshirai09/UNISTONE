@@ -15,7 +15,6 @@ export const NAV_ITEMS = [
 ];
 
 export const MOCK_NEWS: NewsArticle[] = [
-  // Fix: Added missing readTime property
   { id: 'n1', title: 'The Future of Generative AI in Engineering', source: 'TechCrunch', category: 'Engineering', image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&h=250&fit=crop', url: '#', readTime: '5 min' },
   { id: 'n2', title: 'Quantum Computing Nodes Establish Record Sync', source: 'Wired', category: 'CS', image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=250&fit=crop', url: '#', readTime: '4 min' },
   { id: 'n3', title: 'New Biotech Mesh Speeds Up Drug Formulation', source: 'Nature', category: 'Pharmacy', image: 'https://images.unsplash.com/photo-1532187875605-7fe35803efbe?w=400&h=250&fit=crop', url: '#', readTime: '3 min' },
@@ -33,17 +32,17 @@ export const MOCK_COURSES: Course[] = [
     id: 'c1', name: 'AI Node Architecture', code: 'CS301', instructor: 'Dr. Alan Turing', instructorImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop', 
     notesCount: 24, lecturesCount: 12, description: 'Deep dive into neural network synchronization protocols.',
     lectures: [
-      { id: 'l1', title: 'Mesh Topology 101', duration: '45:00', status: 'completed' },
-      { id: 'l2', title: 'Gradient Descent Sync', duration: '52:00', status: 'completed' },
-      { id: 'l3', title: 'Convolutional Hubs', duration: '48:00', status: 'pending' }
+      { id: 'l1', title: 'Mesh Topology 101', duration: '45:00', status: 'completed', type: 'lecture' },
+      { id: 'l2', title: 'Gradient Descent Sync', duration: '52:00', status: 'completed', type: 'lecture' },
+      { id: 'l3', title: 'Convolutional Hubs', duration: '48:00', status: 'pending', type: 'lecture' }
     ]
   },
   { 
     id: 'c2', name: 'Quantum Engineering', code: 'QE202', instructor: 'Prof. Feynman', instructorImage: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop',
     notesCount: 15, lecturesCount: 8, description: 'Application of quantum mechanics in modern infrastructure.',
     lectures: [
-      { id: 'l1', title: 'Qubit Flow Control', duration: '40:00', status: 'completed' },
-      { id: 'l2', title: 'Superposition Logic', duration: '55:00', status: 'pending' }
+      { id: 'l1', title: 'Qubit Flow Control', duration: '40:00', status: 'completed', type: 'lecture' },
+      { id: 'l2', title: 'Superposition Logic', duration: '55:00', status: 'pending', type: 'lecture' }
     ]
   }
 ];
@@ -59,7 +58,6 @@ export const MOCK_EVENTS: CampusEvent[] = [
 ];
 
 export const MOCK_JOBS: Job[] = [
-  // Fix: Removed invalid status property and added required applicants array
   { id: 'j1', title: 'Node Architect Intern', company: 'Google', type: 'internship', location: 'Remote', salary: '60k/mo', tags: ['React', 'Sync'], niche: 'Engineering', applicants: [] },
   { id: 'j2', title: 'ML Mesh Engineer', company: 'NVIDIA', type: 'full-time', location: 'Indore Hub', salary: '18 LPA', tags: ['Python', 'CUDA'], niche: 'CS', applicants: [] }
 ];

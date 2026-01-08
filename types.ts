@@ -43,6 +43,9 @@ export interface Lecture {
   title: string;
   duration: string;
   status: 'completed' | 'pending';
+  type: 'lecture' | 'assignment' | 'reading' | 'quiz';
+  url?: string;
+  fileType?: string;
 }
 
 export interface Course {
