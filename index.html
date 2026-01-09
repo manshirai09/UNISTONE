@@ -2,128 +2,80 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UNISTONE - Smart Campus</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; overflow: hidden; margin: 0; }
+        *, *::before, *::after {
+          box-sizing: border-box;
+        }
+
+        body { 
+          font-family: 'Inter', sans-serif; 
+          margin: 0; 
+          background-color: #ffffff;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          overflow: hidden; /* Prevent body scroll, use app containers */
+          width: 100vw;
+          height: 100vh;
+        }
+        
+        #root {
+          width: 100%;
+          height: 100%;
+          display: flex;
+        }
+
         .gradient-bg {
             background: linear-gradient(135deg, #ffffff 0%, #fefce8 100%);
         }
+        
         .academic-gradient {
-            background: linear-gradient(135deg, #8B0000 0%, #a50000 100%);
+            background: linear-gradient(135deg, var(--brand-primary, #8B0000) 0%, #a50000 100%);
         }
-        .glass {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(139, 0, 0, 0.1);
+
+        /* Smooth scrolling */
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(139, 0, 0, 0.2) transparent;
         }
         
-        /* Map Pan/Zoom Styles */
-        .map-viewport {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #fefce8;
-            position: relative;
-            cursor: grab;
-        }
-        .map-viewport:active { cursor: grabbing; }
-
-        .map-surface {
-            position: absolute;
-            width: 2000px;
-            height: 2000px;
-            transform-origin: 0 0;
-            background-image: 
-                radial-gradient(#f0e68c 1px, transparent 1px),
-                linear-gradient(#fef9c3 1px, transparent 1px),
-                linear-gradient(90deg, #fef9c3 1px, transparent 1px);
-            background-size: 40px 40px, 80px 80px, 80px 80px;
-            background-color: #ffffff;
-        }
-
-        .map-pin {
-            position: absolute;
-            transform: translate(-50%, -100%);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            cursor: pointer;
-            z-index: 10;
-        }
-        .map-pin:hover {
-            transform: translate(-50%, -110%) scale(1.2);
-            z-index: 50;
-        }
-
-        .map-pin.active {
-            z-index: 100;
-        }
-
-        .selected-pin-pulse {
-            animation: pin-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-        }
-
-        @keyframes pin-pulse {
-            0% { box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.6); }
-            70% { box-shadow: 0 0 0 25px rgba(139, 0, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(139, 0, 0, 0); }
-        }
-
-        .hover-card {
-            position: absolute;
-            width: 240px;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            pointer-events: none;
-            opacity: 0;
-            transition: all 0.3s ease;
-            z-index: 200;
-        }
-
-        .map-pin:hover .hover-card {
-            opacity: 1;
-            bottom: 50px;
-        }
-
-        .short-video-container {
-            scroll-snap-type: y mandatory;
-            height: calc(100vh - 120px);
-            overflow-y: scroll;
-        }
-        .short-video-item {
-            scroll-snap-align: start;
-            height: calc(100vh - 120px);
-        }
-        ::-webkit-scrollbar {
+        .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
-        ::-webkit-scrollbar-track {
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
             background: transparent;
         }
-        ::-webkit-scrollbar-thumb {
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
             background: rgba(139, 0, 0, 0.2);
             border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(139, 0, 0, 0.3);
-            border-radius: 4px;
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
-        /* Shadow Utilities for Brand */
-        .shadow-brand {
-            box-shadow: 0 20px 40px -15px rgba(139, 0, 0, 0.2);
+        /* Prevent unwanted rotations or misalignments */
+        .app-container {
+          display: flex;
+          width: 100%;
+          height: 100%;
+          flex-direction: row;
         }
-        .animate-bounce-slow {
-            animation: bounce 3s infinite;
-        }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
-            50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+
+        @media (max-width: 768px) {
+          .app-container {
+            flex-direction: column;
+          }
         }
     </style>
 <script type="importmap">
@@ -138,7 +90,7 @@
 }
 </script>
 </head>
-<body class="bg-white text-slate-900 min-h-screen">
+<body class="bg-white text-slate-900">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
 </body>
